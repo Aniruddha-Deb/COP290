@@ -1,10 +1,9 @@
 CPPC := g++
-CPPFLAGS := -Wall -O3
+CPPFLAGS := -std=c++14 -Wall -O3
 
 SRCDIR := src
 BINDIR := bin
-BUILDDIR := build
-TARGET := build/libmat
+TARGET := bin/test
 
 SRCEXT := cpp
 HDREXT := hpp
@@ -20,11 +19,11 @@ $(TARGET): $(OBJECTS)
 
 $(BINDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 	@mkdir -p $(BINDIR)
-	$(CPPC) $(CPPFLAGS) $(INC) -c -o $@ $<
+	$(CPPC) $(CPPFLAGS) $(INC) -c $< -o $@ 
 
 clean:
 	@echo "Cleaning..."
-	rm -r $(BINDIR) $(TARGET)
+	rm -r $(BINDIR)
 
 # Tests
 #tester:
