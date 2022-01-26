@@ -25,6 +25,7 @@ TEST7ARGS := probability sigmoid tests/a4b.inputvector.txt tests/a4b.output.txt
 $(TARGET): $(OBJECTS)
 	@echo "Linking..."
 	$(CPPC) $^ -o $(TARGET) $(LIB)
+	@cp $(TARGET) ./yourcode.out
 
 test: $(TARGET) $(TESTER)
 	@echo "Running Test 1"
