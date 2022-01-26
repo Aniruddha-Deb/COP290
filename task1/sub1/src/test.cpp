@@ -1,4 +1,5 @@
 #include "nnmat.hpp"
+#include "matio.hpp"
 
 #include <iostream>
 #include <vector>
@@ -7,58 +8,6 @@
 #include <fstream>
 
 using namespace std;
-
-mat read_matrix(string filename) {
-    string line;
-
-    cout << "reading matrix" << endl;
-
-    ifstream source; 
-    source.open(filename,ios::in);
-    if (source) {
-        stringstream buffer;
-        buffer << source.rdbuf();
-        int c, r;
-        buffer >> c >> r;
-        mat M(r,vec(c));
-        for (int i=0; i<c; i++) {
-            for (int j=0; j<r; j++) {
-                buffer >> M[j][i];
-                cout << "read " << M[j][i] << endl;
-            }
-        }
-        cout << "Read matrix" << endl;
-        source.close();
-        return M;
-    }
-
-    mat K;
-    return K;
-}
-
-void print_matrix(mat& matrix) {
-    for (auto v : matrix) {
-        for (float i : v) {
-            cout << i << " ";
-        }
-        cout << endl;
-    }
-}
-
-void print_matrix_to_file(mat& matrix, string filename) {
-
-    ofstream out;
-    out.open(filename, ios::out);
-    if (out) {
-        out << matrix[0].size() << endl;
-        out << matrix.size() << endl;
-        for (int i=0; i<matrix[0].size(); i++) {
-            for (int j=0; j<matrix.size(); j++) {
-                out << matrix[j][i] << endl;
-            }
-        }
-    }
-}
 
 int main(int argc, char** argv) {
 
@@ -91,17 +40,48 @@ int main(int argc, char** argv) {
         mat outputmat = fc_layer(inputmat, weightmat, biasmat);
 
         print_matrix(outputmat);
+        print_matrix_to_file(outputmat, output);
     }
     else if (cmd == "activation") {
         if (argc < 5) goto err;
         string type(argv[2]), input(argv[3]), output(argv[4]);
         mat inputmat = read_matrix(input);
         if (type == "relu") activate(inputmat, relu);
-        else if (type == "tanh") activate(inputmat, tanh);
+        else if (type == "tanh") activate(inputmat, rtw);
         else goto err;
 
         print_matrix(inputmat);
+        print_matrix_to_file(inputmat, output);
     }
+    else if (cmd == "pooling") {
+        if (argc < 6) goto err;
+        string type(argv[2]), input(argv[3]), stride_str(argv[4]), output(argv[5]);
+        int stride = stoi(stride_str);
+
+        mat inputmat = read_matrix(input);
+        float (*poolfn)(mat&);
+        if (type == "max") poolfn = pool_max;
+        else if (type == "average") poolfn = pool_avg;
+        else goto err;
+        mat outputmat = pool(inputmat, stride, poolfn);
+
+        print_matrix(outputmat);
+        print_matrix_to_file(outputmat, output);
+    }
+    else if (cmd == "probability") {
+        if (argc < 5) goto err;
+        string type(argv[2]), input(argv[3]), output(argv[4]);
+
+        vec outputvec;
+        vec inputvec = read_vector(input);
+        if (type == "softmax") outputvec = normalize_softmax(inputvec);
+        else if (type == "sigmoid") outputvec = normalize_sigmoid(inputvec);
+        else goto err;
+
+        print_vector(outputvec);
+        print_vector_to_file(outputvec, output);
+    }
+    else goto err;
 
     return 0;
 

@@ -1,11 +1,13 @@
+#include "nnmat.hpp"
+
 #include <iostream>
 #include <vector>
+#include <limits>
 #include <cmath>
 
-#define mat std::vector<std::vector<float>>
-#define vec std::vector<float>
-
 float relu (float n) { return ((n > 0) ? n : 0); }
+// reinvent the wheel - tanx function
+float rtw  (float n) { return ((exp(n)-exp(-1*n))/(exp(n)+exp(-n))); }
 
 void activate(mat& M, float (*fun)(float)) {
     for (int i=0; i<M.size(); i++) {
@@ -13,6 +15,29 @@ void activate(mat& M, float (*fun)(float)) {
             M[i][j] = fun(M[i][j]);
         }
     }
+}
+
+bool mat_eq(mat& m1, mat& m2) {
+    if (m1.size() != m2.size() || m1.size() == 0) return false;
+    if (m1[0].size() != m2[0].size() || m1[0].size() == 0) return false;
+
+    for (int i=0; i<m1.size(); i++) {
+        for (int j=0; j<m1[0].size(); j++) {
+            if (abs(m1[i][j] - m2[i][j]) > EPS) return false;
+        }
+    }
+
+    return true;
+}
+
+bool vec_eq(vec& v1, vec& v2) {
+    if (v1.size() != v2.size() || v1.size() == 0) return false;
+
+    for (int i=0; i<v1.size(); i++) {
+        if (abs(v1[i] - v2[i]) > EPS) return false;
+    }
+
+    return true;
 }
 
 mat fc_layer(mat& input, mat& weights, mat& bias) {
@@ -46,12 +71,34 @@ mat submatrix(mat& source, int x, int y, int r, int c) {
     return submat;
 }
 
+float pool_avg(mat& matrix) {
+    float sum = 0;
+    for (auto v : matrix) {
+        for (auto i : v) {
+            sum += i;
+        }
+    }
+
+    return ((sum)/(matrix.size()*matrix[0].size()));
+}
+
+float pool_max(mat& matrix) {
+    float max = -std::numeric_limits<float>::max();
+    for (auto v : matrix) {
+        for (auto i : v) {
+            if (i > max) max = i;
+        }
+    }
+
+    return max;
+}
+
 mat pool(mat& input, int stride, float (*poolfn)(mat& subpool)) {
     mat M(input.size()/stride, vec(input[0].size()/stride, 0));
 
     for (int i=0; i<M.size(); i++) {
         for (int j=0; j<M[0].size(); j++) {
-            mat submat = submatrix(input,i*stride,j*stride,stride,stride);
+            mat submat = submatrix(input,j*stride,i*stride,stride,stride);
             M[i][j] = poolfn(submat);
         }
     }
@@ -62,7 +109,7 @@ mat pool(mat& input, int stride, float (*poolfn)(mat& subpool)) {
 vec normalize_sigmoid(vec& input) {
     vec output(input.size());
     for (int i=0; i<input.size(); i++) {
-        output[i] = 1/(1+exp(input[i]));
+        output[i] = 1/(1+exp(-input[i]));
     }   
     return output;
 }
