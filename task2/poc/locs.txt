@@ -1,0 +1,39 @@
+0 - Aravali House
+1 - Jwalamukhi House
+2 - Karakoram House
+3 - Nilgiri House
+4 - Tennis Court
+5 - Volleyball Court
+6 - Nalanda Ground
+7 - SAC
+8 - SAC lawns
+9 - Zanskar House
+10 - Shivalik House
+11 - Rajdhani
+12 - Masala Mix
+13 - Dronagiri and Saptagiri House
+14 - Udaigiri House
+15 - Girnar House
+16 - Cricket Ground
+17 - Grounds
+18 - Walking Track
+19 - Bharti
+20 - SIT
+21 - Cycle Stand (Acad)
+22 - Shiru Cafe
+23 - Amul
+24 - Nescafe
+25 - Central Library
+26 - Red Square
+27 - WindT
+28 - Stones
+29 - Mech Lawns
+30 - Biotech Lawns
+31 - Main Building
+32 - Security Office
+33 - Lecure Hall Complex
+34 - Synergy Building
+35 - Kailash House
+36 - Himadri House
+37 - Kailash Lawns
+38 - Himadri Circle
