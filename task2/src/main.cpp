@@ -1,24 +1,31 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
-#include <algorithm>
-#include <array>
-#include <cassert>
 #include <chrono>
-#include <exception>
 #include <iostream>
-#include <thread>
 
 #include "exceptions.hpp"
 #include "globals.hpp"
 #include "location_tagging.hpp"
 #include "player.hpp"
 #include "render_window.hpp"
+#include "server_class.hpp"
+
+bool ask_server() {
+    std::cout << "Start server?";
+    std::string in;
+    std::cin >> in;
+    return in[0] == 'Y' || in[0] == 'y' || in[0] == '1';
+}
 
 int main(int argc, char* argv[]) {
     try {
+        bool start_server = ask_server();
+
         render_window win("IITD Simulator", T * WIN_W * SCALE, T * WIN_H * SCALE);
         win.scale(SCALE);
+
+        server_class S(start_server);  // start the server if start_server is true
 
         const Uint8* key_state = SDL_GetKeyboardState(nullptr);
 
@@ -38,15 +45,20 @@ int main(int argc, char* argv[]) {
 
         auto start_time = std::chrono::steady_clock::now().time_since_epoch();
 
+        IPaddress server_ip;
+        SDLNet_ResolveHost(&server_ip, "127.0.0.1", 1234);
+        TCPsocket server = SDLNet_TCP_Open(&server_ip);
+
         while (!quit) {
             clk = (clk + 1) % 4;
 
             p.update_state(key_state);
             camera = p.get_camera();
+            p.send_player(server);
 
             win.clear();
             SDL_RenderCopy(win.ren, map, &camera, nullptr);
-            p.render(win, clk, 0, camera, player_sprite);
+            p.render(win, clk, !start_server, camera, player_sprite);
             display_region(p, win, m5x7);
             win.display();
 
@@ -70,6 +82,9 @@ int main(int argc, char* argv[]) {
                 start_time = cur_time;
             }
         }
+
+        SDLNet_TCP_Close(server);
+
     } catch (SDL_exception& e) {
         std::cerr << e.what() << std::endl;
     }

@@ -1,8 +1,10 @@
 #include "player.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_net.h>
 
 #include <algorithm>
+#include <sstream>
 
 #include "globals.hpp"
 #include "render_window.hpp"
@@ -100,4 +102,30 @@ void player::render(render_window& win, int clk, int id, const SDL_Rect& camera,
 
     SDL_Rect src = {(dir + 4 * conv[iter]) * W, id * H, W, H};
     SDL_RenderCopy(win.ren, player_sprite, &src, &dst);
+}
+
+std::string player::serialize() {
+    std::stringstream ss;
+    ss << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter;
+    return ss.str();
+}
+
+player player::deserialize(std::string s) {
+    std::stringstream ss;
+    ss << s;
+
+    player p;
+    ss >> p.pos_x >> p.pos_y;
+    int t;
+    ss >> t;
+    p.dir = (directions)t;
+    ss >> t;
+    p.moving = t;
+    ss >> p.iter;
+    return p;
+}
+
+void player::send_player(TCPsocket server) {
+    auto str = serialize();
+    SDLNet_TCP_Send(server, str.c_str(), str.length() + 1);
 }

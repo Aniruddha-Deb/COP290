@@ -13,7 +13,7 @@ else
 	CXXFLAGS := $(NORMAL_FLAGS)
 endif
 
-SRC := src/render_window.cpp src/player.cpp src/location_tagging.cpp src/main.cpp
+SRC := src/server_class.cpp src/render_window.cpp src/player.cpp src/location_tagging.cpp src/main.cpp
 OBJ := $(patsubst src/%.cpp, obj/%.o, $(SRC))
 
 BIN := bin/game
