@@ -8,6 +8,7 @@ SDL_Texture* map;
 SDL_Texture* player;
 SDL_Renderer* ren;
 TTF_Font* m5x7;
+TTF_Font* m5x7_l;
 
 const int MAP_W = 32;
 const int MAP_H = 116;
@@ -20,6 +21,16 @@ const int DIR_D = 0;
 const int DIR_L = 1;
 const int DIR_R = 2;
 const int DIR_U = 3;
+
+const int GS_MMENU = 0;
+const int GS_FGAME = 1;
+const int GS_WGAME = 2;
+const int GS_READY = 3;
+const int GS_CHASE = 4;
+const int GS_WIN   = 5;
+
+const SDL_Rect BTN_FG = {(WIN_W/4-4)*T, (WIN_H-2)*T-(T/2), 8*T, T};
+const SDL_Rect BTN_CG = {(WIN_W*3/4-4)*T, (WIN_H-2)*T-(T/2), 8*T, T};
 
 const char* str_regions[39] = {
     "Aravali House",
@@ -204,9 +215,9 @@ const int walkable[MAP_H+2][MAP_W+2] = {
     0,883,884,884,884,884,884,884,884,884,884,884,885,332,333,338,339,922,922,922,922,922,922,884,884,884,922,922,922,922,922,922,104,0,
     0,893,894,894,894,894,894,894,894,894,894,894,895,332,333,338,339,922,922,922,922,922,922,884,884,884,922,922,922,922,922,922,104,0,
     0,0,0,0,0,104,104,104,104,104,104,104,104,332,333,338,339,0,1336,1337,1338,1339,922,884,884,884,922,1377,1378,1379,1380,0,104,0,
-    0,0,0,0,0,0,873,874,874,874,874,874,875,332,333,338,339,0,1359,1360,1361,1362,922,884,884,884,922,1400,1401,1402,1403,0,104,0,
-    0,0,0,0,0,0,893,894,894,894,894,894,895,15,16,17,18,0,0,0,0,0,0,884,884,884,0,0,0,0,0,0,104,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,44,45,46,47,103,103,103,103,103,103,103,103,103,103,103,103,103,103,103,103,0,
+    0,0,0,0,0,104,873,874,874,874,874,874,875,332,333,338,339,0,1359,1360,1361,1362,922,884,884,884,922,1400,1401,1402,1403,0,104,0,
+    0,0,0,0,0,104,893,894,894,894,894,894,895,15,16,17,18,0,0,0,0,0,0,884,884,884,0,0,0,0,0,0,104,0,
+    0,0,0,0,0,104,104,104,104,104,104,104,104,44,45,46,47,103,103,103,103,103,103,103,103,103,103,103,103,103,103,103,103,0,
     0,0,0,0,0,0,0,0,0,0,0,884,0,218,219,220,221,0,0,0,0,0,0,0,0,0,0,0,103,0,0,0,103,0,
     0,0,0,0,0,0,0,0,0,0,0,884,0,332,333,338,339,0,0,0,0,0,0,0,0,0,0,0,103,0,0,0,103,0,
     0,0,0,0,0,0,0,0,0,0,0,884,0,332,333,338,339,0,0,0,0,0,0,0,0,0,0,0,103,0,0,0,103,0,
@@ -247,8 +258,8 @@ const int walkable[MAP_H+2][MAP_W+2] = {
     0,0,956,843,843,843,843,843,843,843,843,956,0,332,333,338,339,0,0,0,0,0,0,0,0,0,499,0,0,0,0,0,499,0,
     0,0,956,956,956,956,956,956,956,956,956,956,0,332,333,338,339,0,0,0,0,0,0,0,0,0,499,0,0,0,0,0,499,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,332,333,338,339,0,0,0,0,0,0,0,0,0,499,0,0,0,0,0,499,0,
-    0,103,0,0,0,0,0,0,416,416,416,416,416,332,333,338,339,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,0,
-    0,103,0,0,0,0,0,0,416,416,416,416,416,332,333,338,339,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,0,
+    0,103,0,0,0,0,0,0,416,416,416,416,416,332,0,0,339,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,0,
+    0,103,0,0,0,0,0,0,416,416,416,416,416,332,0,0,339,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,0,
     0,103,0,0,0,0,0,0,416,416,416,416,416,332,333,338,339,0,0,0,0,0,0,0,499,0,499,104,499,0,0,0,0,0,
     0,103,0,0,0,0,0,0,416,0,0,0,416,332,333,338,339,0,0,0,0,0,0,0,499,0,499,104,499,0,0,0,0,0,
     0,103,0,0,0,0,0,0,416,0,0,0,416,332,333,338,339,0,0,0,0,0,0,0,0,0,499,104,0,0,0,0,0,0,
@@ -269,10 +280,10 @@ const int walkable[MAP_H+2][MAP_W+2] = {
     0,104,0,0,0,0,0,0,103,104,0,0,0,332,333,338,339,0,0,0,0,0,0,0,0,103,132,133,138,43,0,142,0,0,
     0,104,0,0,0,0,0,0,103,104,0,0,0,332,333,338,339,0,0,0,0,0,0,0,0,103,132,133,104,104,104,104,104,0,
     0,104,0,0,0,0,0,0,103,104,0,0,0,332,333,338,339,0,0,0,0,0,0,0,0,103,132,133,499,0,499,104,104,0,
-    0,104,104,104,104,0,0,0,103,104,0,0,0,332,333,338,339,103,103,103,883,844,843,884,885,103,132,133,0,499,0,104,104,0,
+    0,104,0,0,0,0,0,0,103,104,0,0,0,332,333,338,339,103,103,103,883,844,843,884,885,103,132,133,0,499,0,104,104,0,
     0,104,104,104,104,0,0,0,103,104,0,0,0,332,333,338,339,103,103,103,893,894,894,894,895,103,132,133,499,499,499,104,104,0,
     0,104,104,104,104,0,0,0,132,133,0,0,0,332,333,338,339,103,103,103,103,103,103,103,103,103,132,133,132,132,132,132,104,0,
-    0,103,103,103,103,103,103,103,103,103,103,103,103,332,333,338,339,873,874,874,874,874,874,874,875,103,132,133,132,132,132,0,104,0,
+    0,103,103,103,103,103,103,103,103,103,103,103,103,332,333,338,339,873,874,874,874,874,874,874,875,103,132,133,132,132,132,843,104,0,
     0,873,874,874,875,0,0,0,0,0,82,82,82,332,333,338,339,883,884,884,884,884,884,884,885,103,132,133,132,0,0,843,104,0,
     0,883,884,884,885,0,0,0,0,0,0,0,82,332,333,338,339,883,884,884,884,884,884,884,885,103,132,133,0,843,843,843,104,0,
     0,883,884,884,885,0,0,0,0,0,0,0,82,332,333,338,339,883,884,884,884,884,884,884,885,103,132,133,132,843,884,843,104,0,
@@ -300,9 +311,38 @@ const int walkable[MAP_H+2][MAP_W+2] = {
     0,883,884,884,884,884,884,884,884,884,884,884,885,390,391,396,397,0,0,0,0,0,0,0,0,0,0,104,883,884,884,885,104,0,
     0,883,884,884,884,884,884,884,884,884,884,884,885,390,391,396,397,0,0,0,0,0,0,0,0,0,0,104,883,884,884,885,104,0,
     0,883,884,884,884,884,884,884,884,884,884,884,885,390,391,396,397,0,0,0,0,0,0,0,0,0,0,104,893,894,894,895,104,0,
-    0,893,894,894,894,894,894,894,894,894,894,894,895,0,0,0,0,0,0,0,0,0,0,0,0,0,0,104,104,104,104,104,104,0,
+    0,893,894,894,894,894,894,894,894,894,894,894,895,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,104,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 }; 
+
+void render_text(SDL_Renderer *ren, const char* text, int x, int y) {
+    SDL_Color white = {255, 255, 255};
+    SDL_Surface *surf = TTF_RenderText_Solid(m5x7, text, white);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(ren, surf);
+    // std::cout << text << " " << surf->w << " " << surf->h << std::endl;
+    SDL_Rect location_rect = {x - surf->w/2, y-surf->h/2, surf->w, surf->h};
+    SDL_RenderCopy(ren, texture, NULL, &location_rect);
+    SDL_FreeSurface(surf);
+    SDL_DestroyTexture(texture);
+}
+
+void render_heading(SDL_Renderer *ren, const char* text, int x, int y) {
+    SDL_Color white = {255, 255, 255};
+    SDL_Color black = {0,0,0};
+    SDL_Surface *shadow = TTF_RenderText_Solid(m5x7_l, text, black);
+    SDL_Surface *surf = TTF_RenderText_Solid(m5x7_l, text, white);
+    SDL_Texture *surf_tex = SDL_CreateTextureFromSurface(ren, surf);
+    SDL_Texture *shadow_tex = SDL_CreateTextureFromSurface(ren, shadow);
+    SDL_Rect shadow_loc = {x - surf->w/2 + 1, y-surf->h/2 + 1, surf->w, surf->h};
+    SDL_Rect surf_loc = {x - surf->w/2, y-surf->h/2, surf->w, surf->h};
+    SDL_RenderCopy(ren, shadow_tex, NULL, &shadow_loc);
+    SDL_RenderCopy(ren, surf_tex, NULL, &surf_loc);
+
+    SDL_FreeSurface(shadow);
+    SDL_FreeSurface(surf);
+    SDL_DestroyTexture(surf_tex);
+    SDL_DestroyTexture(shadow_tex);
+}
 
 void load_fonts() {
     bool success = true;
@@ -312,6 +352,7 @@ void load_fonts() {
     }
     if (success) {
         m5x7 = TTF_OpenFont("../assets/m5x7.ttf", 16);
+        m5x7_l = TTF_OpenFont("../assets/m5x7.ttf", 32);
         std::cout << "Loaded font" << std::endl;
     }
 }
@@ -332,6 +373,10 @@ void load_textures() {
         player = SDL_CreateTextureFromSurface(ren, surf);
         SDL_FreeSurface(surf);
     }
+}
+
+bool inside(const SDL_Rect* r, int x, int y) {
+    return x > r->x && x < r->x + r->w && y > r->y && y < r->y + r->h;
 }
 
 int main(int argc, char const *argv[]) {
@@ -355,9 +400,10 @@ int main(int argc, char const *argv[]) {
     SDL_RenderSetScale(ren, 4,4);
 
     const Uint8* state = SDL_GetKeyboardState(nullptr);
+    int gameState = GS_MMENU;
 
     SDL_Event e;
-    SDL_Rect rootRect = {T*6,T*32,T*WIN_W,T*WIN_H};
+    SDL_Rect rootRect = {T*13,T*78,T*WIN_W,T*WIN_H};
     int pno = 1;
     int dir = DIR_D;
     int iter = 0;
@@ -416,101 +462,123 @@ int main(int argc, char const *argv[]) {
         // std::cout << walkable[py][px-1] << " " << walkable[py][px] << " " << walkable[py][px+1] << std::endl;
         // std::cout << walkable[py+1][px-1] << " " << walkable[py+1][px] << " " << walkable[py+1][px+1] << std::endl;
 
-        // check and display current region
-        if (regions[py-1][px-1] > 0) {
-            SDL_Color White = {255, 255, 255};
-            //std::cout << str_regions[regions[py-1][px-1]-2143] << std::endl;
-            SDL_Surface *surf = TTF_RenderText_Solid(m5x7, str_regions[regions[py-1][px-1]-2143], White);
-            //std::cout << surf->w << " " << surf->h << std::endl;
-            SDL_Texture *texture = SDL_CreateTextureFromSurface(ren, surf);
-            SDL_Rect location_rect = {(WIN_W*T - surf->w)/2, ((WIN_H-1)*T-surf->h), surf->w, surf->h};
-            //std::cout << location_rect.x << " " << location_rect.y << " " << location_rect.w << " " << location_rect.h << std::endl;
-            SDL_RenderCopy(ren, texture, NULL, &location_rect);
-            //std::cout << "Rendered" << std::endl;
+        if (gameState == GS_MMENU) {
+            render_heading(ren, "IITD Simulator", WIN_W*T/2, T);
+            render_text(ren, "Find a Game", WIN_W*T/4, (WIN_H-2)*T);
+            render_text(ren, "Create a Game", 3*WIN_W*T/4, (WIN_H-2)*T);
         }
+        if (gameState == GS_WGAME) {
+            render_text(ren, "IP: 192.168.0.127", WIN_W*T/2, T*2);
+            render_text(ren, "")
+        }
+        else {
+            // check and display current region (centre of sprite)
+            int cx = (posx+T/2)/T;
+            int cy = (posy+T/2)/T;
+            if (regions[cy][cx] > 0) {
+                render_text(ren, str_regions[regions[cy][cx]-2143], WIN_W*T/2, (WIN_H-1)*T);
+            }
+        }
+        
         SDL_RenderPresent(ren);
 
         // get events 
-        if (state[SDL_SCANCODE_SPACE]) {
-            speed = 2;
-        }
-        else {
-            speed = 1;
-        }
+        if (gameState == GS_WGAME || gameState == GS_CHASE) {
+            if (state[SDL_SCANCODE_SPACE]) {
+                speed = 2;
+            }
+            else {
+                speed = 1;
+            }
 
-        if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_LEFT] || state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_DOWN]) {
-            moving = true;
-            if (state[SDL_SCANCODE_RIGHT]) dir = DIR_R;
-            else if (state[SDL_SCANCODE_LEFT]) dir = DIR_L;
-            else if (state[SDL_SCANCODE_UP]) dir = DIR_U;
-            else if (state[SDL_SCANCODE_DOWN]) dir = DIR_D;
-        }
-        else moving = false;
-        if (state[SDL_SCANCODE_RIGHT]) { 
-            if (walkable[py][px+1] && walkable[py+1][px+1]) {
-                posx += speed; 
+            if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_LEFT] || state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_DOWN]) {
+                moving = true;
+                if (state[SDL_SCANCODE_RIGHT]) dir = DIR_R;
+                else if (state[SDL_SCANCODE_LEFT]) dir = DIR_L;
+                else if (state[SDL_SCANCODE_UP]) dir = DIR_U;
+                else if (state[SDL_SCANCODE_DOWN]) dir = DIR_D;
             }
-            else if (walkable[py][px+1] && !walkable[py+1][px+1] && ye < 4) {
-                posx += speed;
-                posy = (py-1)*T;
+            else moving = false;
+            if (state[SDL_SCANCODE_RIGHT]) { 
+                if (walkable[py][px+1] && walkable[py+1][px+1]) {
+                    posx += speed; 
+                }
+                else if (walkable[py][px+1] && !walkable[py+1][px+1] && ye < 4) {
+                    posx += speed;
+                    posy = (py-1)*T;
+                }
+                else if (walkable[py+1][px+1] && !walkable[py][px+1] && ye >= 12) {
+                    posx += speed;
+                    posy = py*T;
+                }
             }
-            else if (walkable[py+1][px+1] && !walkable[py][px+1] && ye >= 12) {
-                posx += speed;
-                posy = py*T;
+            else if (state[SDL_SCANCODE_LEFT]) { 
+                if (walkable[py][px] && walkable[py+1][px]) {
+                    posx -= speed; 
+                }
+                else if (walkable[py][px] && !walkable[py+1][px] && ye < 4) {
+                    posx -= speed;
+                    posy = (py-1)*T;
+                }
+                else if (walkable[py+1][px] && !walkable[py][px] && ye >= 12) {
+                    posx -= speed;
+                    posy = py*T;
+                }
             }
-        }
-        else if (state[SDL_SCANCODE_LEFT]) { 
-            if (walkable[py][px] && walkable[py+1][px]) {
-                posx -= speed; 
+            else if (state[SDL_SCANCODE_UP]) { 
+                if (walkable[py][px] && walkable[py][px+1]) {
+                    posy -= speed; 
+                }
+                else if (walkable[py][px] && !walkable[py][px+1] && xe < 4) {
+                    posy -= speed;
+                    posx = (px-1)*T;
+                }
+                else if (walkable[py][px+1] && !walkable[py][px] && xe >= 12) {
+                    posy -= speed;
+                    posx = px*T;
+                }
             }
-            else if (walkable[py][px] && !walkable[py+1][px] && ye < 4) {
-                posx -= speed;
-                posy = (py-1)*T;
+            else if (state[SDL_SCANCODE_DOWN]) { 
+                if (walkable[py+1][px] && walkable[py+1][px+1]) {
+                    posy += speed; 
+                }
+                else if (walkable[py+1][px] && !walkable[py+1][px+1] && xe < 4) {
+                    posy += speed;
+                    posx = (px-1)*T;
+                }
+                else if (walkable[py+1][px+1] && !walkable[py+1][px] && xe >= 12) {
+                    posy += speed;
+                    posx = px*T;
+                }
             }
-            else if (walkable[py+1][px] && !walkable[py][px] && ye >= 12) {
-                posx -= speed;
-                posy = py*T;
-            }
-        }
-        else if (state[SDL_SCANCODE_UP]) { 
-            if (walkable[py][px] && walkable[py][px+1]) {
-                posy -= speed; 
-            }
-            else if (walkable[py][px] && !walkable[py][px+1] && xe < 4) {
-                posy -= speed;
-                posx = (px-1)*T;
-            }
-            else if (walkable[py][px+1] && !walkable[py][px] && xe >= 12) {
-                posy -= speed;
-                posx = px*T;
-            }
-        }
-        else if (state[SDL_SCANCODE_DOWN]) { 
-            if (walkable[py+1][px] && walkable[py+1][px+1]) {
-                posy += speed; 
-            }
-            else if (walkable[py+1][px] && !walkable[py+1][px+1] && xe < 4) {
-                posy += speed;
-                posx = (px-1)*T;
-            }
-            else if (walkable[py+1][px+1] && !walkable[py+1][px] && xe >= 12) {
-                posy += speed;
-                posx = px*T;
-            }
-        }
 
-        if (clk%4 == 0) {
-            int loc = ((iter/2)+1)*(iter%2); // 0 -> 1 -> 0 -> 2
-            // std::cout << loc << std::endl;
-            playerRect.x = (dir+loc*4)*T;
-            if (moving) iter = (iter+1)%4;
-            else iter = 0;
+            if (clk%4 == 0) {
+                int loc = ((iter/2)+1)*(iter%2); // 0 -> 1 -> 0 -> 2
+                // std::cout << loc << std::endl;
+                playerRect.x = (dir+loc*4)*T;
+                if (moving) iter = (iter+1)%4;
+                else iter = 0;
+            }
         }
 
         while (SDL_PollEvent(&e) != 0) {
             if (e.type == SDL_QUIT) {
                 quit = true;
                 break;
+            }
+            else if (e.type == SDL_MOUSEBUTTONDOWN) {
+                std::cout << "click" << std::endl;
+                if (gameState == GS_MMENU && e.button.button == SDL_BUTTON_LEFT) {
+                    int xm, ym;
+                    SDL_GetMouseState(&xm,&ym);
+                    std::cout << xm << " " << ym << std::endl;
+                    if (inside(&BTN_FG, xm/4, ym/4)) {
+                        gameState = GS_FGAME;
+                    }
+                    else if (inside(&BTN_CG, xm/4, ym/4)) {
+                        gameState = GS_WGAME;
+                    }
+                }
             }
         }
 

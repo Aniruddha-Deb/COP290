@@ -19,6 +19,8 @@ class render_window {
     void clear();
     // void render(entity&);
     void scale(int);
+    void render_text(TTF_Font* font, const std::string& text, int x, int y);
+    void render_heading(TTF_Font* font, const std::string& heading, int x, int y);
 
     //  private:
     SDL_Window* win;

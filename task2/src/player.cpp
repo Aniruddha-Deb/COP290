@@ -75,6 +75,10 @@ void player::update_state(const Uint8* state) {
     }
 }
 
+void player::update_sprite(const int incr) {
+    id = (id+3+incr) % 3;
+}
+
 SDL_Rect player::get_camera() {
     // ideally, you want src to be centered at (CW, CH)
     SDL_Rect camera;
@@ -89,7 +93,7 @@ SDL_Rect player::get_camera() {
     return camera;
 }
 
-void player::render(render_window& win, int clk, int id, const SDL_Rect& camera,
+void player::render(render_window& win, int clk, const SDL_Rect& camera,
                     SDL_Texture* player_sprite) {
     if (clk % 4 == 0) {
         if (moving)
@@ -106,7 +110,7 @@ void player::render(render_window& win, int clk, int id, const SDL_Rect& camera,
 
 std::string player::serialize() {
     std::stringstream ss;
-    ss << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter;
+    ss << pos_x << ' ' << pos_y << ' ' << id << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter;
     return ss.str();
 }
 
@@ -116,6 +120,7 @@ player player::deserialize(std::string s) {
 
     player p;
     ss >> p.pos_x >> p.pos_y;
+    ss >> p.id;
     int t;
     ss >> t;
     p.dir = (directions)t;
