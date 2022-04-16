@@ -12,7 +12,7 @@ constexpr int SCREEN_H = WIN_H * T;
 
 enum directions { DIR_D, DIR_L, DIR_R, DIR_U };
 
-constexpr int walkable[MAP_H + 2][MAP_W + 2] = {
+const int walkable[MAP_H + 2][MAP_W + 2] = {
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0,
     0,   884,  884,  104,  0,    0,   0,   0,   0,   0,   104,  0,    0,    0,    0,   0,   0,

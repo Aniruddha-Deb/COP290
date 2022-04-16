@@ -36,6 +36,8 @@ int main(int argc, char* argv[]) {
 
         int clk = 0;
 
+        auto start_time = std::chrono::steady_clock::now().time_since_epoch();
+
         while (!quit) {
             clk = (clk + 1) % 4;
 
@@ -55,7 +57,18 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            {
+                // makes it so that each loop takes 24 milliseconds to execute
+                const auto cur_time = std::chrono::steady_clock::now().time_since_epoch();
+                auto diff =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(cur_time - start_time)
+                        .count();
+                static constexpr int loop_length = 24;
+                auto wait_time = loop_length - diff;
+                if (wait_time < 0) wait_time = 0;
+                std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
+                start_time = cur_time;
+            }
         }
     } catch (SDL_exception& e) {
         std::cerr << e.what() << std::endl;
