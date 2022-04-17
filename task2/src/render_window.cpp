@@ -59,8 +59,6 @@ void render_window::render_text(TTF_Font* font, const std::string& text, int x, 
 }
 
 void render_window::render_heading(TTF_Font* font, const std::string& text, int x, int y) {
-    SDL_Color white = {255, 255, 255};
-    SDL_Color black = {0, 0, 0};
     SDL_Surface* shadow = TTF_RenderText_Solid(font, text.c_str(), CL_BLACK);
     SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), CL_WHITE);
     SDL_Texture* surf_tex = SDL_CreateTextureFromSurface(ren, surf);

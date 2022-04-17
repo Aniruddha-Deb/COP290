@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include <cassert>
 #include <queue>
 #include <random>
 #include <utility>
@@ -327,13 +328,14 @@ std::pair<std::pair<int, int>, std::pair<int, int>> get_spawn_points_for_locatio
         Q.pop();
     }
 
-    std::uniform_int_distribution<int> u1(0, spawns.size() - 2);
-    std::uniform_int_distribution<int> u2(0, spawns.size() - 1);
+    assert(spawns.size() >= 2u);
+    std::uniform_int_distribution<int> u1(0, (int)spawns.size() - 2);
+    std::uniform_int_distribution<int> u2(0, (int)spawns.size() - 1);
 
     // uniformly picks two spawn coordinates out of spawns. Even I don't know how.
     int first = u1(rng);
     int second = u2(rng);
-    if (second == first) second = spawns.size() - 1;
+    if (second == first) second = (int)spawns.size() - 1;
 
     return {spawns[first], spawns[second]};
 }

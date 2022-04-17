@@ -19,13 +19,14 @@ struct player {
     int id;
     int character;
 
-    player() : pos_x{0}, pos_y{0}, dir{DIR_D}, moving{false}, iter{0}, id{-1} {}
-    player(int x, int y) : pos_x{x}, pos_y{y}, dir{DIR_D}, moving{false}, iter{0}, id{-1} {}
+    player() : pos_x{0}, pos_y{0}, dir{DIR_D}, moving{false}, iter{0}, id{-1}, character{0} {}
+    player(int x, int y)
+        : pos_x{x}, pos_y{y}, dir{DIR_D}, moving{false}, iter{0}, id{-1}, character{0} {}
 
     void update_sprite(const int incr);
     void update_state(const Uint8* state, int clk);
     SDL_Rect get_camera();
-    void render(render_window& win, int character, const SDL_Rect& camera,
+    void render(render_window& win, const SDL_Rect& camera,
                 SDL_Texture* player_sprite);
 
     std::string serialize();

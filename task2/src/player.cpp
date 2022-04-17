@@ -98,8 +98,7 @@ SDL_Rect player::get_camera() {
     return camera;
 }
 
-void player::render(render_window& win, int character, const SDL_Rect& camera,
-                    SDL_Texture* player_sprite) {
+void player::render(render_window& win, const SDL_Rect& camera, SDL_Texture* player_sprite) {
     SDL_Rect dst = {pos_x - camera.x, pos_y - camera.y, W, H};
 
     SDL_Rect src = {(dir + 4 * conv[iter]) * W, character * H, W, H};
