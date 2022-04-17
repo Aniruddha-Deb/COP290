@@ -45,7 +45,6 @@ int main(int argc, char* argv[]) {
 
         const auto m5x7 = win.load_font("../assets/m5x7.ttf", 16);
         const auto m5x7_l = win.load_font("../assets/m5x7.ttf", 32);
-        const auto m5x7_s = win.load_font("../assets/m5x7.ttf", 16);
         const auto minecraftia = win.load_font("../assets/Minecraftia-Regular.ttf", 16);
 
         SDL_Event e;
@@ -260,7 +259,7 @@ int main(int argc, char* argv[]) {
                 }
             } else if (g_state == GS_COUNTDOWN) {
                 const auto cur_time = std::chrono::steady_clock::now().time_since_epoch();
-                const int cntdwn_timer =
+                const auto cntdwn_timer =
                     3 - std::chrono::duration_cast<std::chrono::seconds>(cur_time - countdown_start)
                             .count();
                 if (cntdwn_timer <= 0) {
