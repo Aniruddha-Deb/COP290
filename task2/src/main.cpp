@@ -57,6 +57,8 @@ int main(int argc, char* argv[]) {
         TCPsocket server = SDLNet_TCP_Open(&server_ip);
 
         int cntdwn_timer = 3;
+        int tgt_loc;
+        std::pair<std::pair<int,int>,std::pair<int,int>> spawns;
 
         std::string ip = "";
 
@@ -91,6 +93,9 @@ int main(int argc, char* argv[]) {
                     // TODO server should send a packet informing both players of the
                     // target location to reach, and a spawn point for each of 
                     // them (chosen equidistantly?)
+                    tgt_loc = get_target_location();
+                    spawns = get_spawn_points_for_location(tgt_loc);
+                    std::cout << "(" << spawns.first.first << "," << spawns.first.second << "),(" << spawns.second.first << "," << spawns.second.second << ")" << std::endl;
                     g_state = GS_CHASE;
                 }
                 else {
@@ -106,7 +111,9 @@ int main(int argc, char* argv[]) {
                 }
             }
             else if (g_state == GS_CHASE) {
-                win.render_text(m5x7, "get to Masala Mix", WIN_W*T/2, T);
+                std::string prompt = str_regions[tgt_loc];
+                prompt = "Get to " + prompt;
+                win.render_text(m5x7, prompt.c_str(), WIN_W*T/2, T);
                 p.update_state(key_state);
                 display_region(p, win, m5x7);
                 // TODO check if either player reached target location (masala mix)
