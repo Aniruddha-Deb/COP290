@@ -4,6 +4,7 @@
 #include <SDL2/SDL_net.h>
 
 #include <algorithm>
+#include <cassert>
 #include <sstream>
 
 #include "globals.hpp"
@@ -107,14 +108,18 @@ void player::render(render_window& win, const SDL_Rect& camera, SDL_Texture* pla
 
 std::string player::serialize() {
     std::stringstream ss;
-    ss << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter << ' ' << id
-       << ' ' << character;
+    ss << "P " << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter
+       << ' ' << id << ' ' << character;
     return ss.str();
 }
 
 player player::deserialize(std::string s) {
     std::stringstream ss;
     ss << s;
+
+    char c;
+    ss >> c;
+    assert(c == 'P');
 
     player p;
 

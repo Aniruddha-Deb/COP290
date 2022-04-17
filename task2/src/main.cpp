@@ -5,6 +5,7 @@
 #include <chrono>
 #include <future>
 #include <iostream>
+#include <sstream>
 #include <thread>
 #include <unordered_map>
 
@@ -22,8 +23,6 @@ bool inside(const SDL_Rect* r, int x, int y) {
 int main(int argc, char* argv[]) {
     //   SDLNet_Init();
     try {
-        gameStates g_state = GS_MMENU;
-
         render_window win("IITD Simulator", T * WIN_W * SCALE, T * WIN_H * SCALE);
         win.scale(SCALE);
 
@@ -33,10 +32,7 @@ int main(int argc, char* argv[]) {
 
         const auto map = win.load_texture("../assets/iitd_map.png");
         const auto player_sprite = win.load_texture("../assets/characters.png");
-        player p(13 * T + T * WIN_W / 2,
-                 78 * T + T * WIN_H / 2);  // change this to change start location
-
-        SDL_Rect camera = p.get_camera();
+        // change this to change start location
 
         const auto m5x7 = win.load_font("../assets/m5x7.ttf", 16);
         const auto m5x7_l = win.load_font("../assets/m5x7.ttf", 32);
@@ -44,12 +40,23 @@ int main(int argc, char* argv[]) {
 
         SDL_Event e;
         bool quit = false;
-
         int clk = 0;
 
+        // all game state information here
+        gameStates g_state = GS_MMENU;
+
+        player p(13 * T + T * WIN_W / 2, 78 * T + T * WIN_H / 2);
+        std::unordered_map<int, player> others;
+
+        SDL_Rect camera = p.get_camera();
+
+        std::atomic<bool> initiate_chase_request = false;
+        std::atomic<int> tgt_loc = -1, winner = -1, my_id = -1;
+
         auto prev_loop_time = std::chrono::steady_clock::now().time_since_epoch();
-        int tgt_loc = -1, cntdwn_timer = 3;
-        std::pair<std::pair<int, int>, std::pair<int, int>> spawns;
+        auto countdown_start = prev_loop_time;
+
+        std::string input_ip = "";
 
         /*
          * have another client thread
@@ -66,8 +73,6 @@ int main(int argc, char* argv[]) {
         std::mutex player_mutex, others_mutex;
         std::promise<void> client_exit_signal;
 
-        std::unordered_map<int, player> others;
-
         const auto client_loop = [&](std::future<void> exit_sig, std::string address) {
             IPaddress server_ip;
             SDLNet_ResolveHost(&server_ip, address.c_str(), server_class::port);
@@ -79,6 +84,7 @@ int main(int argc, char* argv[]) {
                 // first connection
 
                 p = *server_class::get_player(server);
+                my_id = p.id;
             }
 
             SDLNet_SocketSet server_set = SDLNet_AllocSocketSet(1);
@@ -89,21 +95,74 @@ int main(int argc, char* argv[]) {
             std::thread send_loop([&, sf]() {
                 static constexpr auto send_loop_time = std::chrono::milliseconds(12);
                 while (sf.wait_for(send_loop_time) == std::future_status::timeout) {
-                    std::lock_guard<std::mutex> lock(player_mutex);
-                    server_class::send_packet(server, p.serialize());
+                    if (initiate_chase_request) {
+                        server_class::send_packet(server, "I");
+                        initiate_chase_request = false;
+                    } else {
+                        std::lock_guard<std::mutex> lock(player_mutex);
+                        server_class::send_packet(server, p.serialize());
+                    }
                 }
             });
 
             int num_ready;
+            std::string buf;
             while (sf.wait_for(std::chrono::microseconds(500)) == std::future_status::timeout) {
                 num_ready = SDLNet_CheckSockets(server_set, 0);
                 if (num_ready <= 0) continue;
 
                 if (SDLNet_SocketReady(server)) {
-                    auto new_p = server_class::get_player(server);
+                    auto next_packet = server_class::get_packet(server);
 
-                    std::lock_guard<std::mutex> lock(others_mutex);
-                    others[new_p->id] = *new_p;
+                    if (next_packet) {
+                        buf = *next_packet;
+                        if (buf[0] == 'P') {
+                            auto new_p = player::deserialize(buf);
+                            std::lock_guard<std::mutex> lock(others_mutex);
+                            others[new_p.id] = std::move(new_p);
+                        } else if (buf[0] == 'D') {
+                            auto del_id = std::stoi(buf.substr(1));
+                            std::lock_guard<std::mutex> lock(others_mutex);
+
+                            // Player with ID del_id got disconnected
+
+                            others.erase(del_id);
+                        } else if (buf[0] == 'I') {
+                            std::stringstream ss;
+                            ss << buf;
+
+                            char c;
+                            ss >> c;
+
+                            int tmp;
+                            ss >> tmp;
+                            tgt_loc = tmp;
+
+                            for (int i = 0; i < 2; ++i) {
+                                int id, x, y;
+                                ss >> id >> x >> y;
+                                if (my_id == id) {
+                                    std::lock_guard<std::mutex> lock(player_mutex);
+                                    p.pos_x = (x - 1) * T;
+                                    p.pos_y = (y - 1) * T;
+                                    server_class::send_packet(server, p.serialize());
+                                    break;
+                                    // others will update their position in the next server query
+                                }
+                            }
+                        } else if (buf[0] == 'W') {
+                            std::stringstream ss;
+                            ss << buf;
+                            char ch;
+                            ss >> ch;
+                            int tmp;
+                            ss >> tmp;
+                            winner = tmp;
+                        }
+                    } else {
+                        std::cout << "Server died :(\n";
+                        break;
+                    }
                 } else {
                     // server died
                     std::cout << "Server died :(\n";
@@ -118,7 +177,9 @@ int main(int argc, char* argv[]) {
 
         std::thread client_thread;
 
-        std::string input_ip = "";
+        auto connect_to_server = [&](std::string address) {
+            client_thread = std::thread(client_loop, client_exit_signal.get_future(), address);
+        };
 
         while (!quit) {
             clk = (clk + 1) % 4;
@@ -158,33 +219,49 @@ int main(int argc, char* argv[]) {
                                 WIN_H * T / 2 + T / 2);
             } else if (g_state == GS_WAIT) {
                 win.render_text(m5x7, "IP: 127.0.0.1", 3 * T, T / 2);
-                win.render_text(m5x7, "1/2", (WIN_W - 1) * T, T / 2);
+                win.render_text(m5x7, std::to_string(1 + others.size()) + "/2", (WIN_W - 1) * T,
+                                T / 2);
 
                 {
                     std::lock_guard<std::mutex> lock(player_mutex);
                     p.update_state(key_state, clk);
                 }
+
                 // free roam mode (without being able to see regions) for the server creator
                 // TODO check if the number of people connected is 2/2
                 // If so, enter countdown mode in both clients (send a message across)
+                if (tgt_loc >= 0) {
+                    countdown_start = std::chrono::steady_clock::now().time_since_epoch();
+
+                    g_state = GS_COUNTDOWN;
+                }
             } else if (g_state == GS_COUNTDOWN) {
-                if (cntdwn_timer == 0) {
+                const auto cur_time = std::chrono::steady_clock::now().time_since_epoch();
+                const int cntdwn_timer =
+                    3 - std::chrono::duration_cast<std::chrono::seconds>(cur_time - countdown_start)
+                            .count();
+                if (cntdwn_timer <= 0) {
                     // TODO server should send a packet informing both players of the
                     // target location to reach, and a spawn point for each of
                     // them (chosen equidistantly?)
+
+                    /*
                     tgt_loc = get_target_location();
                     spawns = get_spawn_points_for_location(tgt_loc);
                     std::cout << "(" << spawns.first.first << "," << spawns.first.second << "),("
                               << spawns.second.first << "," << spawns.second.second << ")"
                               << std::endl;
+                              */
                     g_state = GS_CHASE;
                 } else {
                     win.render_text(m5x7, "Starting in " + std::to_string(cntdwn_timer),
                                     WIN_W * T / 2, (WIN_H - 1) * T);
+                    /*
                     {
                         std::lock_guard<std::mutex> lock(player_mutex);
                         p.update_state(key_state, clk);
                     }
+                    */
                 }
                 win.display();
             } else if (g_state == GS_FIND) {
@@ -198,17 +275,24 @@ int main(int argc, char* argv[]) {
                 std::string prompt = str_regions[tgt_loc];
                 prompt = "Get to " + prompt;
                 win.render_text(m5x7, prompt.c_str(), WIN_W * T / 2, T);
+
                 {
                     std::lock_guard<std::mutex> lock(player_mutex);
                     p.update_state(key_state, clk);
                 }
+
                 display_region(p, win, m5x7);
+
                 // TODO check if either player reached target location (masala mix)
                 // here. If one of them did, transition to GS_END
+                if (winner >= 0) g_state = GS_END;
             } else if (g_state == GS_END) {
                 // TODO check winner and print
-                win.render_heading(m5x7_l, "Player 1 Won", WIN_W * T / 2, WIN_H * T / 2);
-                win.render_text(m5x7, "Main Menu", WIN_W * T / 4, (WIN_H - 2) * T);
+                win.render_heading(
+                    m5x7_l,
+                    (winner == my_id ? "You Won!" : "Player " + std::to_string(winner) + " Won"),
+                    WIN_W * T / 2, WIN_H * T / 2);
+                win.render_text(m5x7, "Continue", WIN_W * T / 4, (WIN_H - 2) * T);
                 win.render_text(m5x7, "Quit", 3 * WIN_W * T / 4, (WIN_H - 2) * T);
             }
 
@@ -228,16 +312,16 @@ int main(int argc, char* argv[]) {
                                 g_state = GS_FIND;
                             else if (g_state == GS_END) {
                                 // reset game
-                                g_state = GS_MMENU;
-                                cntdwn_timer = 3;
+                                tgt_loc = -1;
+                                winner = -1;
+                                g_state = GS_WAIT;
                                 camera = {13 * T, 78 * T, SCREEN_W, SCREEN_H};
                             }
                         } else if (inside(&BTN_RIGHT, xm / 4, ym / 4)) {
                             if (g_state == GS_MMENU) {
                                 // create game
                                 S.create();
-                                client_thread = std::thread(
-                                    client_loop, client_exit_signal.get_future(), "127.0.0.1");
+                                connect_to_server("127.0.0.1");
                                 g_state = GS_WAIT;
                             } else if (g_state == GS_END) {
                                 quit = true;
@@ -255,28 +339,33 @@ int main(int argc, char* argv[]) {
                             p.update_sprite(-1);
                         }
                     }
-                } else if (e.type == SDL_KEYDOWN && g_state == GS_FIND) {
-                    if ((e.key.keysym.sym >= SDLK_0 && e.key.keysym.sym <= SDLK_9) ||
-                        e.key.keysym.sym == SDLK_PERIOD) {
-                        if (input_ip.length() < 15) {
-                            input_ip.push_back((char)e.key.keysym.sym);
+                } else if (e.type == SDL_KEYDOWN) {
+                    if (g_state == GS_FIND) {
+                        if ((e.key.keysym.sym >= SDLK_0 && e.key.keysym.sym <= SDLK_9) ||
+                            e.key.keysym.sym == SDLK_PERIOD) {
+                            if (input_ip.length() < 15) {
+                                input_ip.push_back((char)e.key.keysym.sym);
+                            }
                         }
-                    }
-                    if (e.key.keysym.sym == SDLK_BACKSPACE) {
-                        if (input_ip.length() > 0) input_ip.erase(input_ip.length() - 1);
-                    }
-                    if (e.key.keysym.sym == SDLK_RETURN) {
-                        // TODO connect to other server here and await countdown
-                        // mode confirmation
+                        if (e.key.keysym.sym == SDLK_BACKSPACE) {
+                            if (input_ip.length() > 0) input_ip.erase(input_ip.length() - 1);
+                        }
+                        if (e.key.keysym.sym == SDLK_RETURN) {
+                            // TODO connect to other server here and await countdown
+                            // mode confirmation
 
-                        client_thread =
-                            std::thread(client_loop, client_exit_signal.get_future(), input_ip);
-                        g_state = GS_COUNTDOWN;
+                            connect_to_server(input_ip);
+                            g_state = GS_WAIT;
+                        }
+                    } else if (g_state == GS_WAIT) {
+                        if (e.key.keysym.sym == SDLK_s) {
+                            // send request to server
+                            // std::cout << "Sent request\n";
+                            initiate_chase_request = true;
+                        }
                     }
                 }
             }
-
-            if (clk == 0 && g_state == GS_COUNTDOWN) cntdwn_timer--;
 
             {
                 // makes it so that each loop takes 24 milliseconds to execute

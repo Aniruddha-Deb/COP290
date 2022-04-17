@@ -259,8 +259,12 @@ static constexpr int regions[MAP_H][MAP_W] = {
     2180, 2180, 2180, 2180, 2180, 2180, 2180, 2180, 2180, 2180, 2180, 2180, 0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0};
 
+int get_region(const player& p) {
+    return regions[(p.pos_y + T / 2) / T][(p.pos_x + T / 2) / T] - 2143;
+}
+
 void display_region(const player& p, const render_window& win, TTF_Font* font) {
-    auto idx = regions[(p.pos_y + T / 2) / T][(p.pos_x + T / 2) / T] - 2143;
+    const auto idx = get_region(p);
     if (idx < 0) return;
 
     static constexpr SDL_Color white = {0xFF, 0xFF, 0xFF, 0xFF};  // RGBA
@@ -274,7 +278,7 @@ void display_region(const player& p, const render_window& win, TTF_Font* font) {
 
 int get_target_location() { return loc_uni(rng); }
 
-std::pair<std::pair<int, int>, std::pair<int, int>> get_spawn_points_for_location(int loc) {
+std::array<std::pair<int, int>, 2> get_spawn_points_for_location(int loc) {
     int xc = centres[loc][0] + 1;
     int yc = centres[loc][1] + 1;
 

@@ -10,7 +10,7 @@
 
 struct server_class {
     static constexpr int port = 47854;
-    static constexpr size_t max_clients = 2;
+    static constexpr size_t max_clients = 4;
     static constexpr size_t packet_size = 128;
 
     std::promise<void> exit_signal;
