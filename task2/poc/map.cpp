@@ -469,7 +469,6 @@ int main(int argc, char const *argv[]) {
         }
         if (gameState == GS_WGAME) {
             render_text(ren, "IP: 192.168.0.127", WIN_W*T/2, T*2);
-            render_text(ren, "")
         }
         else {
             // check and display current region (centre of sprite)
