@@ -35,10 +35,10 @@ void spawn_cats(int (&catlocs)[4][2], int* catimgs, int ncats) {
         int loc = locs(rng);
         if (walkable[loc/MAP_W + 1][loc%MAP_W + 1]) {
             // location found for cat
-            i++;
             catlocs[i][0] = loc%MAP_W;
             catlocs[i][1] = loc/MAP_W;
             catimgs[i] = cats[i];
+            i++;
         }
     }
 }
@@ -126,7 +126,17 @@ int main(int argc, char* argv[]) {
                 // If so, enter countdown mode in both clients (send a message across)
             }
             else if (g_state == GS_CAT) {
-                SDL_RenderCopy(win.ren,cat_img,NULL,NULL);
+                SDL_SetRenderDrawColor(win.ren,0,0,0,120);
+                SDL_Rect screen = {0,0,WIN_W*T,WIN_H*T};
+                SDL_RenderFillRect(win.ren,&screen);
+                SDL_SetRenderDrawColor(win.ren,255,255,255,255);
+                SDL_Rect frame = {T,3*T/4,(WIN_W-2)*T,WIN_H*T-(3*T/2)};
+                SDL_RenderFillRect(win.ren, &frame);
+                frame.x += T/2;
+                frame.y += 3*T/8;
+                frame.w -= T;
+                frame.h -= 3*T/4;
+                SDL_RenderCopy(win.ren,cat_img,NULL,&frame);
             }
             else if (g_state == GS_COUNTDOWN) {
                 if (cntdwn_timer == 0) {

@@ -22,6 +22,7 @@ render_window::render_window(const std::string& title, int width, int height)
     if (ren == nullptr) throw SDL_exception("SDL_CreateRenderer failed");
 
     SDL_SetRenderDrawColor(ren, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
 
     // Initialize IMG
     if (IMG_Init(IMG_INIT_PNG) == 0) throw SDL_exception("IMG_Init failed");

@@ -400,7 +400,7 @@ int main(int argc, char const *argv[]) {
     SDL_RenderSetScale(ren, 4,4);
 
     const Uint8* state = SDL_GetKeyboardState(nullptr);
-    int gameState = GS_MMENU;
+    int gameState = GS_CHASE;
 
     SDL_Event e;
     SDL_Rect rootRect = {T*13,T*78,T*WIN_W,T*WIN_H};
