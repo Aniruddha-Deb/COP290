@@ -15,6 +15,7 @@ endif
 
 SRC := src/server_class.cpp src/render_window.cpp src/player.cpp src/location_tagging.cpp src/main.cpp
 OBJ := $(patsubst src/%.cpp, obj/%.o, $(SRC))
+DEP := $(patsubst src/%.cpp, obj/%.d, $(SRC))
 
 BIN := bin/game
 
@@ -28,8 +29,10 @@ all : $(BIN)
 $(BIN): $(OBJ)
 	$(CXX) $(CXXFLAGS) $(INC) $(LIB) $^ -o $@ $(LFLAGS)
 
+-include $(DEP)
+
 obj/%.o: src/%.cpp makefile
-	$(CXX) $(CXXFLAGS) $(INC) $(LIB) -c $< -o $@ $(LFLAGS)
+	$(CXX) $(CXXFLAGS) $(INC) $(LIB) -MMD -MP -c $< -o $@ $(LFLAGS)
 
 clean:
-	$(RM) $(OBJ) $(BIN)
+	$(RM) $(OBJ) $(BIN) $(DEP)

@@ -9,7 +9,7 @@
 #include "globals.hpp"
 #include "render_window.hpp"
 
-void player::update_state(const Uint8* state) {
+void player::update_state(const Uint8* state, int clk) {
     int px = (pos_x + T) / T;
     int py = (pos_y + T) / T;
     int xe = pos_x % T;
@@ -73,6 +73,13 @@ void player::update_state(const Uint8* state) {
             pos_x = px * T;
         }
     }
+
+    if (clk % 4 == 0) {
+        if (moving)
+            iter = (iter + 1) % 4;
+        else
+            iter = 0;
+    }
 }
 
 SDL_Rect player::get_camera() {
@@ -89,24 +96,18 @@ SDL_Rect player::get_camera() {
     return camera;
 }
 
-void player::render(render_window& win, int clk, int id, const SDL_Rect& camera,
+void player::render(render_window& win, int character, const SDL_Rect& camera,
                     SDL_Texture* player_sprite) {
-    if (clk % 4 == 0) {
-        if (moving)
-            iter = (iter + 1) % 4;
-        else
-            iter = 0;
-    }
-
     SDL_Rect dst = {pos_x - camera.x, pos_y - camera.y, W, H};
 
-    SDL_Rect src = {(dir + 4 * conv[iter]) * W, id * H, W, H};
+    SDL_Rect src = {(dir + 4 * conv[iter]) * W, character * H, W, H};
     SDL_RenderCopy(win.ren, player_sprite, &src, &dst);
 }
 
 std::string player::serialize() {
     std::stringstream ss;
-    ss << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter;
+    ss << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter << ' '
+       << id;
     return ss.str();
 }
 
@@ -115,17 +116,18 @@ player player::deserialize(std::string s) {
     ss << s;
 
     player p;
+
     ss >> p.pos_x >> p.pos_y;
+
     int t;
+
     ss >> t;
     p.dir = (directions)t;
+
     ss >> t;
     p.moving = t;
-    ss >> p.iter;
-    return p;
-}
 
-void player::send_player(TCPsocket server) {
-    auto str = serialize();
-    SDLNet_TCP_Send(server, str.c_str(), str.length() + 1);
+    ss >> p.iter >> p.id;
+
+    return p;
 }
