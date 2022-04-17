@@ -15,13 +15,6 @@
 #include "render_window.hpp"
 #include "server_class.hpp"
 
-bool ask_server() {
-    std::cout << "Start server? ";
-    std::string in;
-    std::cin >> in;
-    return in[0] == 'Y' || in[0] == 'y' || in[0] == '1';
-}
-
 bool inside(const SDL_Rect* r, int x, int y) {
     return x > r->x && x < r->x + r->w && y > r->y && y < r->y + r->h;
 }
@@ -29,13 +22,12 @@ bool inside(const SDL_Rect* r, int x, int y) {
 int main(int argc, char* argv[]) {
     //   SDLNet_Init();
     try {
-        bool start_server = ask_server();
         gameStates g_state = GS_MMENU;
 
         render_window win("IITD Simulator", T * WIN_W * SCALE, T * WIN_H * SCALE);
         win.scale(SCALE);
 
-        server_class S(start_server);  // start the server if start_server is true
+        server_class S;  // start the server if start_server is true
 
         const Uint8* key_state = SDL_GetKeyboardState(nullptr);
 
@@ -76,55 +68,55 @@ int main(int argc, char* argv[]) {
 
         std::unordered_map<int, player> others;
 
-        std::thread client_thread(
-            [&](std::future<void> exit_sig) {
-                IPaddress server_ip;
-                SDLNet_ResolveHost(&server_ip, "127.0.0.1", server_class::port);
-                TCPsocket server = SDLNet_TCP_Open(&server_ip);
+        const auto client_loop = [&](std::future<void> exit_sig, std::string address) {
+            IPaddress server_ip;
+            SDLNet_ResolveHost(&server_ip, address.c_str(), server_class::port);
+            TCPsocket server = SDLNet_TCP_Open(&server_ip);
 
-                {
+            {
+                std::lock_guard<std::mutex> lock(player_mutex);
+                server_class::send_packet(server, p.serialize());
+                // first connection
+
+                p = *server_class::get_player(server);
+            }
+
+            SDLNet_SocketSet server_set = SDLNet_AllocSocketSet(1);
+            SDLNet_TCP_AddSocket(server_set, server);
+
+            std::shared_future<void> sf(std::move(exit_sig));
+
+            std::thread send_loop([&, sf]() {
+                static constexpr auto send_loop_time = std::chrono::milliseconds(12);
+                while (sf.wait_for(send_loop_time) == std::future_status::timeout) {
                     std::lock_guard<std::mutex> lock(player_mutex);
                     server_class::send_packet(server, p.serialize());
-                    // first connection
-
-                    p = *server_class::get_player(server);
                 }
+            });
 
-                SDLNet_SocketSet server_set = SDLNet_AllocSocketSet(1);
-                SDLNet_TCP_AddSocket(server_set, server);
+            int num_ready;
+            while (sf.wait_for(std::chrono::microseconds(500)) == std::future_status::timeout) {
+                num_ready = SDLNet_CheckSockets(server_set, 0);
+                if (num_ready <= 0) continue;
 
-                std::shared_future<void> sf(std::move(exit_sig));
+                if (SDLNet_SocketReady(server)) {
+                    auto new_p = server_class::get_player(server);
 
-                std::thread send_loop([&, sf]() {
-                    static constexpr auto send_loop_time = std::chrono::milliseconds(12);
-                    while (sf.wait_for(send_loop_time) == std::future_status::timeout) {
-                        std::lock_guard<std::mutex> lock(player_mutex);
-                        server_class::send_packet(server, p.serialize());
-                    }
-                });
-
-                int num_ready;
-                while (sf.wait_for(std::chrono::microseconds(500)) == std::future_status::timeout) {
-                    num_ready = SDLNet_CheckSockets(server_set, 0);
-                    if (num_ready <= 0) continue;
-
-                    if (SDLNet_SocketReady(server)) {
-                        auto new_p = server_class::get_player(server);
-
-                        std::lock_guard<std::mutex> lock(others_mutex);
-                        others[new_p->id] = *new_p;
-                    } else {
-                        // server died
-                        std::cout << "Server died :(\n";
-                        break;
-                    }
+                    std::lock_guard<std::mutex> lock(others_mutex);
+                    others[new_p->id] = *new_p;
+                } else {
+                    // server died
+                    std::cout << "Server died :(\n";
+                    break;
                 }
+            }
 
-                if (send_loop.joinable()) send_loop.join();
+            if (send_loop.joinable()) send_loop.join();
 
-                SDLNet_TCP_Close(server);
-            },
-            client_exit_signal.get_future());
+            SDLNet_TCP_Close(server);
+        };
+
+        std::thread client_thread;
 
         std::string input_ip = "";
 
@@ -241,9 +233,13 @@ int main(int argc, char* argv[]) {
                                 camera = {13 * T, 78 * T, SCREEN_W, SCREEN_H};
                             }
                         } else if (inside(&BTN_RIGHT, xm / 4, ym / 4)) {
-                            if (g_state == GS_MMENU)
+                            if (g_state == GS_MMENU) {
+                                // create game
+                                S.create();
+                                client_thread = std::thread(
+                                    client_loop, client_exit_signal.get_future(), "127.0.0.1");
                                 g_state = GS_WAIT;
-                            else if (g_state == GS_END) {
+                            } else if (g_state == GS_END) {
                                 quit = true;
                                 break;
                             }
@@ -272,6 +268,9 @@ int main(int argc, char* argv[]) {
                     if (e.key.keysym.sym == SDLK_RETURN) {
                         // TODO connect to other server here and await countdown
                         // mode confirmation
+
+                        client_thread =
+                            std::thread(client_loop, client_exit_signal.get_future(), input_ip);
                         g_state = GS_COUNTDOWN;
                     }
                 }

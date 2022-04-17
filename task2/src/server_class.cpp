@@ -15,9 +15,9 @@
 
 #include "player.hpp"
 
-server_class::server_class(bool start) {
-    if (!start) return;
+server_class::server_class() {}
 
+void server_class::create() {
     std::future<void> future_obj = exit_signal.get_future();
     th = std::thread(&server_loop, std::move(future_obj));
 }

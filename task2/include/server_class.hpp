@@ -16,7 +16,8 @@ struct server_class {
     std::promise<void> exit_signal;
     std::thread th;
 
-    server_class(bool start);
+    server_class();
+    void create();
     static void server_loop(std::future<void> future_obj);
     ~server_class();
 
