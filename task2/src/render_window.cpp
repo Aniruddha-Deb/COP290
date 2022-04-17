@@ -22,6 +22,7 @@ render_window::render_window(const std::string& title, int width, int height)
     if (ren == nullptr) throw SDL_exception("SDL_CreateRenderer failed");
 
     SDL_SetRenderDrawColor(ren, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
 
     // Initialize IMG
     if (IMG_Init(IMG_INIT_PNG) == 0) throw SDL_exception("IMG_Init failed");
@@ -48,12 +49,12 @@ TTF_Font* render_window::load_font(const std::string& path, int ptsize) {
     return res;
 }
 
-void render_window::render_text(TTF_Font* font, const std::string& text, int x, int y) {
-    SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), CL_WHITE);
+void render_window::render_text(TTF_Font* font, const std::string& text, int x, int y,
+                                SDL_Color col) {
+    SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), col);
     SDL_Texture* texture = SDL_CreateTextureFromSurface(ren, surf);
-    // std::cout << text << " " << surf->w << " " << surf->h << std::endl;
     SDL_Rect location_rect = {x - surf->w / 2, y - surf->h / 2, surf->w, surf->h};
-    SDL_RenderCopy(ren, texture, NULL, &location_rect);
+    SDL_RenderCopy(ren, texture, nullptr, &location_rect);
     SDL_FreeSurface(surf);
     SDL_DestroyTexture(texture);
 }

@@ -13,13 +13,13 @@ else
 	CXXFLAGS := $(NORMAL_FLAGS)
 endif
 
-SRC := src/server_class.cpp src/render_window.cpp src/player.cpp src/location_tagging.cpp src/main.cpp
+SRC := src/server_class.cpp src/render_window.cpp src/player.cpp src/cat.cpp src/location_tagging.cpp src/main.cpp
 OBJ := $(patsubst src/%.cpp, obj/%.o, $(SRC))
 DEP := $(patsubst src/%.cpp, obj/%.d, $(SRC))
 
 BIN := bin/game
 
-LFLAGS := -lSDL2 -lSDL2_image -lSDL2_net -lSDL2_ttf -lm
+LFLAGS := -lSDL2 -lSDL2_image -lSDL2_net -lSDL2_ttf -lm -lpthread
 LIB := -L/usr/lib/x86_64-linux-gnu/
 INC := -I./include/ -I/usr/include/SDL2/
 

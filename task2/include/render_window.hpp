@@ -6,6 +6,7 @@
 
 // #include "entity.hpp"
 #include "exceptions.hpp"
+#include "globals.hpp"
 
 class render_window {
    public:
@@ -19,7 +20,8 @@ class render_window {
     void clear();
     // void render(entity&);
     void scale(int);
-    void render_text(TTF_Font* font, const std::string& text, int x, int y);
+    void render_text(TTF_Font* font, const std::string& text, int x, int y,
+                     SDL_Color col = CL_WHITE);
     void render_heading(TTF_Font* font, const std::string& heading, int x, int y);
 
     //  private:

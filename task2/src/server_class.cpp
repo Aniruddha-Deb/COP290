@@ -3,17 +3,20 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_net.h>
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <future>
 #include <iostream>
 #include <optional>
+#include <random>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <unordered_map>
 #include <vector>
 
+#include "cat.hpp"
 #include "location_tagging.hpp"
 #include "player.hpp"
 
@@ -69,6 +72,34 @@ void server_class::server_loop(std::future<void> future_obj) {
     std::vector<int> dead_clients;
     int tgt_loc = -1;
 
+    // initialize catto
+    std::array<cat, cat_count> cats;
+
+    {
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::uniform_int_distribution<int> locs(0, MAP_W * MAP_H - 1);
+
+        std::array<int, cat_count> ids;
+        std::iota(ids.begin(), ids.end(), 0);
+        std::shuffle(ids.begin(), ids.end(), rng);
+
+        std::array<int, cat_img_count> imgs;
+        std::iota(imgs.begin(), imgs.end(), 0);
+        std::shuffle(imgs.begin(), imgs.end(), rng);
+
+        for (size_t i = 0; i < cats.size(); ++i) {
+            auto &c = cats[i];
+            do {
+                const auto loc = locs(rng);
+                c.pos_x = loc % MAP_W;
+                c.pos_y = loc / MAP_W;
+            } while (!walkable[c.pos_y + 1][c.pos_x + 1]);
+            c.img = imgs[i];
+            c.sprite = ids[i];
+        }
+    }
+
     while (future_obj.wait_for(loop_wait_time) == std::future_status::timeout) {
         int num_ready = SDLNet_CheckSockets(socket_set, 0);
         if (num_ready <= 0) {
@@ -101,6 +132,8 @@ void server_class::server_loop(std::future<void> future_obj) {
 
                             player_info[p->id] = *p;
                             send_packet(client, p->serialize());
+
+                            for (auto c : cats) send_packet(client, c.serialize());
 
                             clients.emplace_back(client, p->id);
                             num_ready = SDLNet_CheckSockets(socket_set, 0);

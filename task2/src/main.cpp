@@ -8,7 +8,9 @@
 #include <sstream>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 
+#include "cat.hpp"
 #include "exceptions.hpp"
 #include "globals.hpp"
 #include "location_tagging.hpp"
@@ -21,21 +23,29 @@ bool inside(const SDL_Rect* r, int x, int y) {
 }
 
 int main(int argc, char* argv[]) {
-    //   SDLNet_Init();
     try {
         render_window win("IITD Simulator", T * WIN_W * SCALE, T * WIN_H * SCALE);
         win.scale(SCALE);
 
-        server_class S;  // start the server if start_server is true
+        server_class S;  // object to gracefully handle server
 
         const Uint8* key_state = SDL_GetKeyboardState(nullptr);
 
+        // load textures
         const auto map = win.load_texture("../assets/iitd_map.png");
         const auto player_sprite = win.load_texture("../assets/characters.png");
-        // change this to change start location
+        const auto cat_sprite = win.load_texture("../assets/cats.png");
+        const auto cat_imgs = [&]() {
+            std::array<SDL_Texture*, cat_img_count> res;
+            for (size_t i = 0; i < cat_img_count; ++i)
+                res[i] = win.load_texture("../assets/cats/cat" + std::to_string(i) + ".png");
+            return res;
+        }();
+        auto cat_img = cat_imgs[0];
 
         const auto m5x7 = win.load_font("../assets/m5x7.ttf", 16);
         const auto m5x7_l = win.load_font("../assets/m5x7.ttf", 32);
+        const auto m5x7_s = win.load_font("../assets/m5x7.ttf", 16);
         const auto minecraftia = win.load_font("../assets/Minecraftia-Regular.ttf", 16);
 
         SDL_Event e;
@@ -43,9 +53,10 @@ int main(int argc, char* argv[]) {
         int clk = 0;
 
         // all game state information here
-        gameStates g_state = GS_MMENU;
+        gameStates g_state = GS_MMENU, prev_state = GS_WAIT;
 
-        player p(13 * T + T * WIN_W / 2, 78 * T + T * WIN_H / 2);
+        player p(13 * T + T * WIN_W / 2,
+                 78 * T + T * WIN_H / 2);  // change this to change start location
         std::unordered_map<int, player> others;
 
         SDL_Rect camera = p.get_camera();
@@ -70,8 +81,9 @@ int main(int argc, char* argv[]) {
          * - read others
          */
 
-        std::mutex player_mutex, others_mutex;
+        std::mutex player_mutex, others_mutex, cats_mutex;
         std::promise<void> client_exit_signal;
+        std::vector<cat> cats;
 
         const auto client_loop = [&](std::future<void> exit_sig, std::string address) {
             IPaddress server_ip;
@@ -158,6 +170,11 @@ int main(int argc, char* argv[]) {
                             int tmp;
                             ss >> tmp;
                             winner = tmp;
+                        } else if (buf[0] == 'C') {
+                            const auto c = cat::deserialize(buf);
+
+                            std::lock_guard<std::mutex> lock(cats_mutex);
+                            cats.push_back(c);
                         }
                     } else {
                         std::cout << "Server died :(\n";
@@ -187,7 +204,6 @@ int main(int argc, char* argv[]) {
             {
                 // update camera
                 std::lock_guard<std::mutex> lock(player_mutex);
-                // p.update_state(key_state, clk);
                 camera = p.get_camera();
             }
 
@@ -202,10 +218,17 @@ int main(int argc, char* argv[]) {
                 std::lock_guard<std::mutex> lock(others_mutex);
                 for (auto [id, other_p] : others) other_p.render(win, camera, player_sprite);
             }
+
             // render me
             {
                 std::lock_guard<std::mutex> lock(player_mutex);
                 p.render(win, camera, player_sprite);
+            }
+
+            // render cats
+            {
+                std::lock_guard<std::mutex> loc(cats_mutex);
+                for (auto c : cats) c.render(win, camera, cat_sprite);
             }
 
             if (g_state == GS_MMENU) {
@@ -218,7 +241,7 @@ int main(int argc, char* argv[]) {
                 win.render_text(minecraftia, "<", (WIN_W / 2 - 1) * T + T / 2,
                                 WIN_H * T / 2 + T / 2);
             } else if (g_state == GS_WAIT) {
-                win.render_text(m5x7, "IP: 127.0.0.1", 3 * T, T / 2);
+                // win.render_text(m5x7, "IP: 127.0.0.1", 3 * T, T / 2);
                 win.render_text(m5x7, std::to_string(1 + others.size()) + "/2", (WIN_W - 1) * T,
                                 T / 2);
 
@@ -294,6 +317,30 @@ int main(int argc, char* argv[]) {
                     WIN_W * T / 2, WIN_H * T / 2);
                 win.render_text(m5x7, "Continue", WIN_W * T / 4, (WIN_H - 2) * T);
                 win.render_text(m5x7, "Quit", 3 * WIN_W * T / 4, (WIN_H - 2) * T);
+            } else if (g_state == GS_CAT) {
+                SDL_SetRenderDrawColor(win.ren, 0x00, 0x00, 0x00, 120);
+                SDL_Rect screen = {0, 0, WIN_W * T, WIN_H * T};
+                SDL_RenderFillRect(win.ren, &screen);
+                SDL_SetRenderDrawColor(win.ren, 0xFF, 0xFF, 0xFF, 0xFF);
+
+                SDL_Rect frame = {T, 3 * T / 4, (WIN_W - 2) * T, WIN_H * T - (3 * T / 2)};
+                SDL_RenderFillRect(win.ren, &frame);
+                frame.x += 3 * T / 4;
+                frame.y += 9 * T / 16;
+                frame.w -= 3 * T / 2;
+                frame.h -= 9 * T / 8;
+
+                {
+                    SDL_Surface* surf = TTF_RenderText_Solid(m5x7, "@iitd_cats", CL_BLACK);
+                    SDL_Texture* texture = SDL_CreateTextureFromSurface(win.ren, surf);
+                    SDL_Rect location_rect = {(WIN_W - 1) * T - surf->w, (WIN_H - 1) * T - T / 2,
+                                              surf->w, surf->h};
+                    SDL_RenderCopy(win.ren, texture, nullptr, &location_rect);
+                    SDL_FreeSurface(surf);
+                    SDL_DestroyTexture(texture);
+                }
+
+                SDL_RenderCopy(win.ren, cat_img, nullptr, &frame);
             }
 
             win.display();
@@ -357,12 +404,27 @@ int main(int argc, char* argv[]) {
                             connect_to_server(input_ip);
                             g_state = GS_WAIT;
                         }
-                    } else if (g_state == GS_WAIT) {
-                        if (e.key.keysym.sym == SDLK_s) {
+                    } else if (g_state == GS_WAIT || g_state == GS_CHASE) {
+                        if (e.key.keysym.sym == SDLK_RETURN) {
+                            for (auto c : cats) {
+                                SDL_Rect cat_rect = {c.pos_x * T - T / 2, c.pos_y * T - T / 2,
+                                                     2 * T, 2 * T};
+                                if (inside(&cat_rect, p.pos_x + T / 2, p.pos_y + T / 2)) {
+                                    cat_img = cat_imgs[c.img];
+                                    prev_state = g_state;
+                                    g_state = GS_CAT;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (g_state == GS_WAIT && e.key.keysym.sym == SDLK_s) {
                             // send request to server
                             // std::cout << "Sent request\n";
                             initiate_chase_request = true;
                         }
+                    } else if (g_state == GS_CAT) {
+                        g_state = prev_state;
                     }
                 }
             }
