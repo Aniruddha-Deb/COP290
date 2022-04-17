@@ -4,12 +4,15 @@
 #include <SDL2/SDL_net.h>
 
 #include <algorithm>
+#include <cassert>
 #include <sstream>
 
 #include "globals.hpp"
 #include "render_window.hpp"
 
-void player::update_state(const Uint8* state) {
+void player::update_sprite(int incr) { character = (character + 3 + incr) % 3; }
+
+void player::update_state(const Uint8* state, int clk) {
     int px = (pos_x + T) / T;
     int py = (pos_y + T) / T;
     int xe = pos_x % T;
@@ -73,10 +76,13 @@ void player::update_state(const Uint8* state) {
             pos_x = px * T;
         }
     }
-}
 
-void player::update_sprite(const int incr) {
-    id = (id+3+incr) % 3;
+    if (clk % 4 == 0) {
+        if (moving)
+            iter = (iter + 1) % 4;
+        else
+            iter = 0;
+    }
 }
 
 SDL_Rect player::get_camera() {
@@ -93,24 +99,17 @@ SDL_Rect player::get_camera() {
     return camera;
 }
 
-void player::render(render_window& win, int clk, const SDL_Rect& camera,
-                    SDL_Texture* player_sprite) {
-    if (clk % 4 == 0) {
-        if (moving)
-            iter = (iter + 1) % 4;
-        else
-            iter = 0;
-    }
-
+void player::render(render_window& win, const SDL_Rect& camera, SDL_Texture* player_sprite) {
     SDL_Rect dst = {pos_x - camera.x, pos_y - camera.y, W, H};
 
-    SDL_Rect src = {(dir + 4 * conv[iter]) * W, id * H, W, H};
+    SDL_Rect src = {(dir + 4 * conv[iter]) * W, character * H, W, H};
     SDL_RenderCopy(win.ren, player_sprite, &src, &dst);
 }
 
 std::string player::serialize() {
     std::stringstream ss;
-    ss << pos_x << ' ' << pos_y << ' ' << id << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter;
+    ss << "P " << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter
+       << ' ' << id << ' ' << character;
     return ss.str();
 }
 
@@ -118,19 +117,23 @@ player player::deserialize(std::string s) {
     std::stringstream ss;
     ss << s;
 
+    char c;
+    ss >> c;
+    assert(c == 'P');
+
     player p;
+
     ss >> p.pos_x >> p.pos_y;
-    ss >> p.id;
+
     int t;
+
     ss >> t;
     p.dir = (directions)t;
+
     ss >> t;
     p.moving = t;
-    ss >> p.iter;
-    return p;
-}
 
-void player::send_player(TCPsocket server) {
-    auto str = serialize();
-    SDLNet_TCP_Send(server, str.c_str(), str.length() + 1);
+    ss >> p.iter >> p.id >> p.character;
+
+    return p;
 }

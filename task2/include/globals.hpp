@@ -1,5 +1,9 @@
 #pragma once
+
 #include <SDL2/SDL.h>
+
+constexpr int cat_count = 4;
+constexpr int cat_img_count = 10;
 
 constexpr int MAP_W = 32;
 constexpr int MAP_H = 116;
@@ -8,58 +12,56 @@ constexpr int SCALE = 4;
 constexpr int WIN_W = 16;
 constexpr int WIN_H = 12;
 
-constexpr SDL_Rect BTN_LEFT = {(WIN_W/4-4)*T, (WIN_H-2)*T-(T/2), 8*T, T};
-constexpr SDL_Rect BTN_RIGHT = {(WIN_W*3/4-4)*T, (WIN_H-2)*T-(T/2), 8*T, T};
-constexpr SDL_Color CL_WHITE = {255, 255, 255};
-constexpr SDL_Color CL_BLACK = {0, 0, 0};
+constexpr SDL_Rect BTN_LEFT = {(WIN_W / 4 - 4) * T, (WIN_H - 2) * T - (T / 2), 8 * T, T};
+constexpr SDL_Rect BTN_RIGHT = {(WIN_W * 3 / 4 - 4) * T, (WIN_H - 2) * T - (T / 2), 8 * T, T};
+constexpr SDL_Color CL_WHITE = {0xFF, 0xFF, 0xFF, 0xFF};
+constexpr SDL_Color CL_BLACK = {0x00, 0x00, 0x00, 0xFF};
 
 constexpr int SCREEN_W = WIN_W * T;
 constexpr int SCREEN_H = WIN_H * T;
 
 enum directions { DIR_D, DIR_L, DIR_R, DIR_U };
-enum gameStates { GS_MMENU, GS_FIND, GS_WAIT, GS_CAT, GS_COUNTDOWN, GS_CHASE, GS_END };
+enum gameStates { GS_MMENU, GS_FIND, GS_WAIT, GS_COUNTDOWN, GS_CHASE, GS_END, GS_CAT };
 
-
-static const char* str_regions[39] = {"Aravali House",
-                                      "Jwalamukhi House",
-                                      "Karakoram House",
-                                      "Nilgiri House",
-                                      "Tennis Court",
-                                      "Volleyball Court",
-                                      "Nalanda Ground",
-                                      "SAC",
-                                      "SAC lawns",
-                                      "Zanskar House",
-                                      "Shivalik House",
-                                      "Rajdhani",
-                                      "Masala Mix",
-                                      "Dronagiri and Saptagiri House",
-                                      "Udaigiri House",
-                                      "Girnar House",
-                                      "Cricket Ground",
-                                      "Grounds",
-                                      "Walking Track",
-                                      "Bharti",
-                                      "SIT",
-                                      "Cycle Stand (Acad)",
-                                      "Shiru Cafe",
-                                      "Amul",
-                                      "Nescafe",
-                                      "Central Library",
-                                      "Red Square",
-                                      "WindT",
-                                      "Stones",
-                                      "Mech Lawns",
-                                      "Biotech Lawns",
-                                      "Main Building",
-                                      "Security Office",
-                                      "Lecure Hall Complex",
-                                      "Synergy Building",
-                                      "Kailash House",
-                                      "Himadri House",
-                                      "Kailash Lawns",
-                                      "Himadri Circle"};
-
+[[maybe_unused]] static const char* str_regions[39] = {"Aravali House",
+                                                       "Jwalamukhi House",
+                                                       "Karakoram House",
+                                                       "Nilgiri House",
+                                                       "Tennis Court",
+                                                       "Volleyball Court",
+                                                       "Nalanda Ground",
+                                                       "SAC",
+                                                       "SAC lawns",
+                                                       "Zanskar House",
+                                                       "Shivalik House",
+                                                       "Rajdhani",
+                                                       "Masala Mix",
+                                                       "Dronagiri and Saptagiri House",
+                                                       "Udaigiri House",
+                                                       "Girnar House",
+                                                       "Cricket Ground",
+                                                       "Grounds",
+                                                       "Walking Track",
+                                                       "Bharti",
+                                                       "SIT",
+                                                       "Cycle Stand (Acad)",
+                                                       "Shiru Cafe",
+                                                       "Amul",
+                                                       "Nescafe",
+                                                       "Central Library",
+                                                       "Red Square",
+                                                       "WindT",
+                                                       "Stones",
+                                                       "Mech Lawns",
+                                                       "Biotech Lawns",
+                                                       "Main Building",
+                                                       "Security Office",
+                                                       "Lecure Hall Complex",
+                                                       "Synergy Building",
+                                                       "Kailash House",
+                                                       "Himadri House",
+                                                       "Kailash Lawns",
+                                                       "Himadri Circle"};
 const int walkable[MAP_H + 2][MAP_W + 2] = {
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0,
@@ -101,11 +103,11 @@ const int walkable[MAP_H + 2][MAP_W + 2] = {
     922, 922,  922,  922,  922,  922, 884, 884, 884, 922, 922,  922,  922,  922,  922, 104, 0,
     0,   0,    0,    0,    0,    104, 104, 104, 104, 104, 104,  104,  104,  332,  333, 338, 339,
     0,   1336, 1337, 1338, 1339, 922, 884, 884, 884, 922, 1377, 1378, 1379, 1380, 0,   104, 0,
-    0,   0,    0,    0,    0,    0,   873, 874, 874, 874, 874,  874,  875,  332,  333, 338, 339,
+    0,   0,    0,    0,    0,    104, 873, 874, 874, 874, 874,  874,  875,  332,  333, 338, 339,
     0,   1359, 1360, 1361, 1362, 922, 884, 884, 884, 922, 1400, 1401, 1402, 1403, 0,   104, 0,
-    0,   0,    0,    0,    0,    0,   893, 894, 894, 894, 894,  894,  895,  15,   16,  17,  18,
+    0,   0,    0,    0,    0,    104, 893, 894, 894, 894, 894,  894,  895,  15,   16,  17,  18,
     0,   0,    0,    0,    0,    0,   884, 884, 884, 0,   0,    0,    0,    0,    0,   104, 0,
-    0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    44,   45,  46,  47,
+    0,   0,    0,    0,    0,    104, 104, 104, 104, 104, 104,  104,  104,  44,   45,  46,  47,
     103, 103,  103,  103,  103,  103, 103, 103, 103, 103, 103,  103,  103,  103,  103, 103, 0,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    884,  0,    218,  219, 220, 221,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    103,  0,    0,    0,   103, 0,
@@ -187,9 +189,9 @@ const int walkable[MAP_H + 2][MAP_W + 2] = {
     0,   0,    0,    0,    0,    0,   0,   0,   0,   499, 0,    0,    0,    0,    0,   499, 0,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    332,  333, 338, 339,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   499, 0,    0,    0,    0,    0,   499, 0,
-    0,   103,  0,    0,    0,    0,   0,   0,   416, 416, 416,  416,  416,  332,  333, 338, 339,
+    0,   103,  0,    0,    0,    0,   0,   0,   416, 416, 416,  416,  416,  332,  0,   0,   339,
     104, 104,  104,  104,  104,  104, 104, 104, 104, 104, 104,  104,  104,  104,  104, 104, 0,
-    0,   103,  0,    0,    0,    0,   0,   0,   416, 416, 416,  416,  416,  332,  333, 338, 339,
+    0,   103,  0,    0,    0,    0,   0,   0,   416, 416, 416,  416,  416,  332,  0,   0,   339,
     104, 104,  104,  104,  104,  104, 104, 104, 104, 104, 104,  104,  104,  104,  104, 104, 0,
     0,   103,  0,    0,    0,    0,   0,   0,   416, 416, 416,  416,  416,  332,  333, 338, 339,
     0,   0,    0,    0,    0,    0,   0,   499, 0,   499, 104,  499,  0,    0,    0,   0,   0,
@@ -231,14 +233,14 @@ const int walkable[MAP_H + 2][MAP_W + 2] = {
     0,   0,    0,    0,    0,    0,   0,   0,   103, 132, 133,  104,  104,  104,  104, 104, 0,
     0,   104,  0,    0,    0,    0,   0,   0,   103, 104, 0,    0,    0,    332,  333, 338, 339,
     0,   0,    0,    0,    0,    0,   0,   0,   103, 132, 133,  499,  0,    499,  104, 104, 0,
-    0,   104,  104,  104,  104,  0,   0,   0,   103, 104, 0,    0,    0,    332,  333, 338, 339,
+    0,   104,  0,    0,    0,    0,   0,   0,   103, 104, 0,    0,    0,    332,  333, 338, 339,
     103, 103,  103,  883,  844,  843, 884, 885, 103, 132, 133,  0,    499,  0,    104, 104, 0,
     0,   104,  104,  104,  104,  0,   0,   0,   103, 104, 0,    0,    0,    332,  333, 338, 339,
     103, 103,  103,  893,  894,  894, 894, 895, 103, 132, 133,  499,  499,  499,  104, 104, 0,
     0,   104,  104,  104,  104,  0,   0,   0,   132, 133, 0,    0,    0,    332,  333, 338, 339,
     103, 103,  103,  103,  103,  103, 103, 103, 103, 132, 133,  132,  132,  132,  132, 104, 0,
     0,   103,  103,  103,  103,  103, 103, 103, 103, 103, 103,  103,  103,  332,  333, 338, 339,
-    873, 874,  874,  874,  874,  874, 874, 875, 103, 132, 133,  132,  132,  132,  0,   104, 0,
+    873, 874,  874,  874,  874,  874, 874, 875, 103, 132, 133,  132,  132,  132,  843, 104, 0,
     0,   873,  874,  874,  875,  0,   0,   0,   0,   0,   82,   82,   82,   332,  333, 338, 339,
     883, 884,  884,  884,  884,  884, 884, 885, 103, 132, 133,  132,  0,    0,    843, 104, 0,
     0,   883,  884,  884,  885,  0,   0,   0,   0,   0,   0,    0,    82,   332,  333, 338, 339,
@@ -293,7 +295,7 @@ const int walkable[MAP_H + 2][MAP_W + 2] = {
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   104,  883,  884,  884,  885, 104, 0,
     0,   883,  884,  884,  884,  884, 884, 884, 884, 884, 884,  884,  885,  390,  391, 396, 397,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   104,  893,  894,  894,  895, 104, 0,
-    0,   893,  894,  894,  894,  894, 894, 894, 894, 894, 894,  894,  895,  0,    0,   0,   0,
-    0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   104,  104,  104,  104,  104, 104, 0,
+    0,   893,  894,  894,  894,  894, 894, 894, 894, 894, 894,  894,  895,  104,  104, 104, 104,
+    104, 104,  104,  104,  104,  104, 104, 104, 104, 104, 104,  104,  104,  104,  104, 104, 0,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0};
