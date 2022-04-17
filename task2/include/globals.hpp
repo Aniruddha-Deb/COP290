@@ -62,8 +62,7 @@ enum gameStates { GS_MMENU, GS_FIND, GS_WAIT, GS_COUNTDOWN, GS_CHASE, GS_END, GS
                                                        "Himadri House",
                                                        "Kailash Lawns",
                                                        "Himadri Circle"};
-
-constexpr int walkable[MAP_H + 2][MAP_W + 2] = {
+const int walkable[MAP_H + 2][MAP_W + 2] = {
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0,
     0,   0,    0,    0,    0,    0,   0,   0,   0,   0,   0,    0,    0,    0,    0,   0,   0,
     0,   884,  884,  104,  0,    0,   0,   0,   0,   0,   104,  0,    0,    0,    0,   0,   0,
