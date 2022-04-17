@@ -3,6 +3,9 @@
 
 #include <chrono>
 #include <iostream>
+#include <random>
+#include <algorithm> 
+#include <array>
 
 #include "exceptions.hpp"
 #include "globals.hpp"
@@ -20,6 +23,24 @@ bool ask_server() {
 
 bool inside(const SDL_Rect* r, int x, int y) {
     return x > r->x && x < r->x + r->w && y > r->y && y < r->y + r->h;
+}
+
+void spawn_cats(int (&catlocs)[4][2], int* catimgs, int ncats) {
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    std::uniform_int_distribution<int> locs(0,116*32-1);
+    std::array<int,10> cats {1,2,3,4,5,6,7,8,9,10};
+    shuffle (cats.begin(), cats.end(), rng);
+    for (int i=0; i<ncats;) {
+        int loc = locs(rng);
+        if (walkable[loc/MAP_W + 1][loc%MAP_W + 1]) {
+            // location found for cat
+            i++;
+            catlocs[i][0] = loc%MAP_W;
+            catlocs[i][1] = loc/MAP_W;
+            catimgs[i] = cats[i];
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -50,6 +71,15 @@ int main(int argc, char* argv[]) {
 
         int clk = 0;
 
+        int ncats = 4;
+        int catlocs[4][2];
+        int catimgs[4];
+        spawn_cats(catlocs, catimgs, ncats);
+        auto cat_texture = win.load_texture("../assets/cats.png");
+        int curr_cat = -1;
+        SDL_Texture* cat_img;
+        gameStates prev_state = GS_MMENU;
+
         auto start_time = std::chrono::steady_clock::now().time_since_epoch();
 
         IPaddress server_ip;
@@ -71,6 +101,13 @@ int main(int argc, char* argv[]) {
             win.clear();
             SDL_RenderCopy(win.ren, map, &camera, nullptr);
             p.render(win, clk, camera, player_sprite);
+            for (int i=0; i<ncats; i++) {
+                SDL_Rect srcrect = {(i%4)*T,0,T,T};
+                SDL_Rect dstrect = {(catlocs[i][0]*T-camera.x),(catlocs[i][1]*T-camera.y),T,T};
+                if (inside(&camera, catlocs[i][0]*T, catlocs[i][1]*T) || inside(&camera, catlocs[i][0]*T+T, catlocs[i][1]*T+T)) {
+                    SDL_RenderCopy(win.ren, cat_texture, &srcrect, &dstrect);
+                }
+            }
 
             if (g_state == GS_MMENU) {
                 win.render_heading(m5x7_l, "IITD Simulator", WIN_W*T/2, T);
@@ -87,6 +124,9 @@ int main(int argc, char* argv[]) {
                                            // for the server creator
                 // TODO check if the number of people connected is 2/2
                 // If so, enter countdown mode in both clients (send a message across)
+            }
+            else if (g_state == GS_CAT) {
+                SDL_RenderCopy(win.ren,cat_img,NULL,NULL);
             }
             else if (g_state == GS_COUNTDOWN) {
                 if (cntdwn_timer == 0) {
@@ -147,7 +187,9 @@ int main(int argc, char* argv[]) {
                             }
                         }
                         else if (inside(&BTN_RIGHT, xm/4, ym/4)) {
-                            if (g_state == GS_MMENU) g_state = GS_WAIT;
+                            if (g_state == GS_MMENU) {
+                                g_state = GS_WAIT;
+                            }
                             else if (g_state == GS_END) {
                                 quit = true;
                                 break;
@@ -161,19 +203,40 @@ int main(int argc, char* argv[]) {
                         else if (e.key.keysym.sym == SDLK_LEFT) p.update_sprite(-1);
                     }
                 }
-                else if (e.type == SDL_KEYDOWN && g_state == GS_FIND) {
-                    if ((e.key.keysym.sym >= SDLK_0 && e.key.keysym.sym <= SDLK_9) || e.key.keysym.sym == SDLK_PERIOD) {
-                        if (ip.length() < 15) {
-                            ip.push_back(e.key.keysym.sym);
+                else if (e.type == SDL_KEYDOWN) {
+                    if (g_state == GS_FIND) {
+                        if ((e.key.keysym.sym >= SDLK_0 && e.key.keysym.sym <= SDLK_9) || e.key.keysym.sym == SDLK_PERIOD) {
+                            if (ip.length() < 15) {
+                                ip.push_back(e.key.keysym.sym);
+                            }
+                        }
+                        if (e.key.keysym.sym == SDLK_BACKSPACE) {
+                            if (ip.length() > 0) ip.erase(ip.length()-1);
+                        }
+                        if (e.key.keysym.sym == SDLK_RETURN) {
+                            // TODO connect to other server here and await countdown
+                            // mode confirmation
+                            g_state = GS_COUNTDOWN;
                         }
                     }
-                    if (e.key.keysym.sym == SDLK_BACKSPACE) {
-                        if (ip.length() > 0) ip.erase(ip.length()-1);
+                    else if (g_state == GS_WAIT || g_state == GS_CHASE) {
+                        // cat check
+                        for (int i=0; i<ncats; i++) {
+                            SDL_Rect cat_rect = {catlocs[i][0]*T-T/2,catlocs[i][1]*T-T/2,2*T,2*T};
+                            if (inside(&cat_rect,p.pos_x+8,p.pos_y+8) && e.key.keysym.sym == SDLK_SPACE) {
+                                // cat collision
+                                prev_state = g_state;
+                                g_state = GS_CAT;
+                                curr_cat = i;
+                                // render the current cat onto screen
+                                std::string catloc = "../assets/cat" + std::to_string(catimgs[i]) + ".png";
+                                cat_img = win.load_texture(catloc);
+                                break;
+                            }
+                        }
                     }
-                    if (e.key.keysym.sym == SDLK_RETURN) {
-                        // TODO connect to other server here and await countdown
-                        // mode confirmation
-                        g_state = GS_COUNTDOWN;
+                    else if (g_state == GS_CAT) {
+                        g_state = prev_state;
                     }
                 }
             }

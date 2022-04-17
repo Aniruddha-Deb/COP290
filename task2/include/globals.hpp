@@ -17,7 +17,7 @@ constexpr int SCREEN_W = WIN_W * T;
 constexpr int SCREEN_H = WIN_H * T;
 
 enum directions { DIR_D, DIR_L, DIR_R, DIR_U };
-enum gameStates { GS_MMENU, GS_FIND, GS_WAIT, GS_COUNTDOWN, GS_CHASE, GS_END };
+enum gameStates { GS_MMENU, GS_FIND, GS_WAIT, GS_CAT, GS_COUNTDOWN, GS_CHASE, GS_END };
 
 
 static const char* str_regions[39] = {"Aravali House",
