@@ -3,50 +3,26 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include <queue>
+#include <random>
+#include <utility>
+#include <vector>
+
 #include "exceptions.hpp"
 #include "globals.hpp"
 #include "player.hpp"
 #include "render_window.hpp"
 
-static const char* str_regions[39] = {"Aravali House",
-                                      "Jwalamukhi House",
-                                      "Karakoram House",
-                                      "Nilgiri House",
-                                      "Tennis Court",
-                                      "Volleyball Court",
-                                      "Nalanda Ground",
-                                      "SAC",
-                                      "SAC lawns",
-                                      "Zanskar House",
-                                      "Shivalik House",
-                                      "Rajdhani",
-                                      "Masala Mix",
-                                      "Dronagiri and Saptagiri House",
-                                      "Udaigiri House",
-                                      "Girnar House",
-                                      "Cricket Ground",
-                                      "Grounds",
-                                      "Walking Track",
-                                      "Bharti",
-                                      "SIT",
-                                      "Cycle Stand (Acad)",
-                                      "Shiru Cafe",
-                                      "Amul",
-                                      "Nescafe",
-                                      "Central Library",
-                                      "Red Square",
-                                      "WindT",
-                                      "Stones",
-                                      "Mech Lawns",
-                                      "Biotech Lawns",
-                                      "Main Building",
-                                      "Security Office",
-                                      "Lecure Hall Complex",
-                                      "Synergy Building",
-                                      "Kailash House",
-                                      "Himadri House",
-                                      "Kailash Lawns",
-                                      "Himadri Circle"};
+std::random_device rd;
+std::mt19937 rng(rd());
+std::uniform_int_distribution<int> loc_uni(0, 38);
+std::uniform_int_distribution<int> dist_uni(40, 80);
+
+static constexpr int centres[39][2] = {
+    18, 8,  25, 8,  11, 8,  4,  8,  18, 16, 27, 16,  5,  15,  7,  21,  4,  32, 20, 21,
+    29, 21, 24, 33, 19, 33, 18, 38, 24, 51, 31, 43,  5,  55,  5,  44,  5,  49, 20, 62,
+    28, 62, 27, 64, 25, 64, 24, 69, 17, 70, 20, 70,  28, 68,  25, 80,  28, 84, 29, 89,
+    19, 90, 21, 84, 17, 84, 7,  77, 6,  66, 6,  103, 26, 106, 5,  110, 13, 96};
 
 static constexpr int regions[MAP_H][MAP_W] = {
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
@@ -283,7 +259,7 @@ static constexpr int regions[MAP_H][MAP_W] = {
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0};
 
 void display_region(const player& p, const render_window& win, TTF_Font* font) {
-    auto idx = regions[p.pos_y / T][p.pos_x / T] - 2143;
+    auto idx = regions[(p.pos_y + T / 2) / T][(p.pos_x + T / 2) / T] - 2143;
     if (idx < 0) return;
 
     static constexpr SDL_Color white = {0xFF, 0xFF, 0xFF, 0xFF};  // RGBA
@@ -293,4 +269,71 @@ void display_region(const player& p, const render_window& win, TTF_Font* font) {
     auto tex = SDL_CreateTextureFromSurface(win.ren, surf);
     SDL_Rect rect = {(WIN_W * T - surf->w) / 2, ((WIN_H - 1) * T - surf->h), surf->w, surf->h};
     SDL_RenderCopy(win.ren, tex, nullptr, &rect);
+}
+
+int get_target_location() { return loc_uni(rng); }
+
+std::pair<std::pair<int, int>, std::pair<int, int>> get_spawn_points_for_location(int loc) {
+    int xc = centres[loc][0] + 1;
+    int yc = centres[loc][1] + 1;
+
+    // BFS on to find some candidate spawn points equidistant from centre
+    int dist = dist_uni(rng);
+    std::queue<std::pair<int, int>> Q;
+    std::vector<std::vector<bool>> visited(MAP_H + 2, std::vector<bool>(MAP_W + 2, false));
+    Q.push({xc, yc});
+    int curr_dist = 0;
+    int ncdist = 1;
+    int nndist = 0;
+    while (curr_dist < dist) {
+        auto v = Q.front();
+        Q.pop();
+        visited[v.second][v.first] = true;
+        ncdist--;
+        // neighbouring tiles
+        if (!visited[v.second - 1][v.first] && walkable[v.second - 1][v.first]) {
+            Q.push({v.first, v.second - 1});
+            visited[v.second - 1][v.first] = true;
+            nndist++;
+        }
+        if (!visited[v.second + 1][v.first] && walkable[v.second + 1][v.first]) {
+            Q.push({v.first, v.second + 1});
+            visited[v.second + 1][v.first] = true;
+            nndist++;
+        }
+        if (!visited[v.second][v.first - 1] && walkable[v.second][v.first - 1]) {
+            Q.push({v.first - 1, v.second});
+            visited[v.second][v.first - 1] = true;
+            nndist++;
+        }
+        if (!visited[v.second][v.first + 1] && walkable[v.second][v.first + 1]) {
+            Q.push({v.first + 1, v.second});
+            visited[v.second][v.first + 1] = true;
+            nndist++;
+        }
+
+        if (ncdist == 0) {
+            ncdist = nndist;
+            nndist = 0;
+            curr_dist++;
+        }
+    }
+
+    // all the elements in the queue are at a distance of dist from the target
+    // location.
+    std::vector<std::pair<int, int>> spawns;
+    while (!Q.empty()) {
+        spawns.push_back(Q.front());
+        Q.pop();
+    }
+
+    std::uniform_int_distribution<int> u1(0, spawns.size() - 2);
+    std::uniform_int_distribution<int> u2(0, spawns.size() - 1);
+
+    // uniformly picks two spawn coordinates out of spawns. Even I don't know how.
+    int first = u1(rng);
+    int second = u2(rng);
+    if (second == first) second = spawns.size() - 1;
+
+    return {spawns[first], spawns[second]};
 }

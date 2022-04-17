@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
 
                 std::shared_future<void> sf(std::move(exit_sig));
 
-                std::thread send_loop([&]() {
+                std::thread send_loop([&, sf]() {
                     static constexpr auto send_loop_time = std::chrono::milliseconds(12);
                     while (sf.wait_for(send_loop_time) == std::future_status::timeout) {
                         std::lock_guard<std::mutex> lock(player_mutex);

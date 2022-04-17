@@ -9,6 +9,8 @@
 #include "globals.hpp"
 #include "render_window.hpp"
 
+void player::update_sprite(int incr) { character = (character + 3 + incr) % 3; }
+
 void player::update_state(const Uint8* state, int clk) {
     int px = (pos_x + T) / T;
     int py = (pos_y + T) / T;
@@ -106,8 +108,8 @@ void player::render(render_window& win, int character, const SDL_Rect& camera,
 
 std::string player::serialize() {
     std::stringstream ss;
-    ss << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter << ' '
-       << id;
+    ss << pos_x << ' ' << pos_y << ' ' << dir << ' ' << (moving ? 1 : 0) << ' ' << iter << ' ' << id
+       << ' ' << character;
     return ss.str();
 }
 
@@ -127,7 +129,7 @@ player player::deserialize(std::string s) {
     ss >> t;
     p.moving = t;
 
-    ss >> p.iter >> p.id;
+    ss >> p.iter >> p.id >> p.character;
 
     return p;
 }

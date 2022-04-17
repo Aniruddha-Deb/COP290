@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "exceptions.hpp"
+#include "globals.hpp"
 
 render_window::render_window(const std::string& title, int width, int height)
     : win{nullptr}, ren{nullptr} {
@@ -47,6 +48,34 @@ TTF_Font* render_window::load_font(const std::string& path, int ptsize) {
     return res;
 }
 
+void render_window::render_text(TTF_Font* font, const std::string& text, int x, int y) {
+    SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), CL_WHITE);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(ren, surf);
+    // std::cout << text << " " << surf->w << " " << surf->h << std::endl;
+    SDL_Rect location_rect = {x - surf->w / 2, y - surf->h / 2, surf->w, surf->h};
+    SDL_RenderCopy(ren, texture, NULL, &location_rect);
+    SDL_FreeSurface(surf);
+    SDL_DestroyTexture(texture);
+}
+
+void render_window::render_heading(TTF_Font* font, const std::string& text, int x, int y) {
+    SDL_Color white = {255, 255, 255};
+    SDL_Color black = {0, 0, 0};
+    SDL_Surface* shadow = TTF_RenderText_Solid(font, text.c_str(), CL_BLACK);
+    SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), CL_WHITE);
+    SDL_Texture* surf_tex = SDL_CreateTextureFromSurface(ren, surf);
+    SDL_Texture* shadow_tex = SDL_CreateTextureFromSurface(ren, shadow);
+    SDL_Rect shadow_loc = {x - surf->w / 2 + 1, y - surf->h / 2 + 1, surf->w, surf->h};
+    SDL_Rect surf_loc = {x - surf->w / 2, y - surf->h / 2, surf->w, surf->h};
+    SDL_RenderCopy(ren, shadow_tex, NULL, &shadow_loc);
+    SDL_RenderCopy(ren, surf_tex, NULL, &surf_loc);
+
+    SDL_FreeSurface(shadow);
+    SDL_FreeSurface(surf);
+    SDL_DestroyTexture(surf_tex);
+    SDL_DestroyTexture(shadow_tex);
+}
+
 /*
 void render_window::render(entity& e) {
     if (SDL_RenderCopy(ren, e.get_texture(), e.get_src_ptr(), e.get_dst_ptr()) < 0)
@@ -55,7 +84,8 @@ void render_window::render(entity& e) {
 */
 
 void render_window::scale(int val) {
-    if (SDL_RenderSetScale(ren, (float)val, (float)val) < 0) throw SDL_exception("SDL_RenderSetScale failed");
+    if (SDL_RenderSetScale(ren, (float)val, (float)val) < 0)
+        throw SDL_exception("SDL_RenderSetScale failed");
 }
 
 void render_window::display() { SDL_RenderPresent(ren); }
