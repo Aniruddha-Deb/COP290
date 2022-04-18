@@ -59,6 +59,16 @@ void render_window::render_text(TTF_Font* font, const std::string& text, int x, 
     SDL_DestroyTexture(texture);
 }
 
+void render_window::render_text_left(TTF_Font* font, const std::string& text, int x, int y,
+                                     SDL_Color col) {
+    SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), col);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(ren, surf);
+    SDL_Rect location_rect = {x, y, surf->w, surf->h};
+    SDL_RenderCopy(ren, texture, nullptr, &location_rect);
+    SDL_FreeSurface(surf);
+    SDL_DestroyTexture(texture);
+}
+
 void render_window::render_heading(TTF_Font* font, const std::string& text, int x, int y) {
     SDL_Surface* shadow = TTF_RenderText_Solid(font, text.c_str(), CL_BLACK);
     SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), CL_WHITE);

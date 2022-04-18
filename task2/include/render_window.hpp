@@ -22,6 +22,8 @@ class render_window {
     void scale(int);
     void render_text(TTF_Font* font, const std::string& text, int x, int y,
                      SDL_Color col = CL_WHITE);
+    void render_text_left(TTF_Font* font, const std::string& text, int x, int y,
+                          SDL_Color col = CL_WHITE);
     void render_heading(TTF_Font* font, const std::string& heading, int x, int y);
 
     //  private:

@@ -176,6 +176,7 @@ int main(int argc, char* argv[]) {
                             cats.push_back(c);
                         }
                     } else {
+                        std::cout << "Server died here\n";
                         std::cout << "Server died :(\n";
                         break;
                     }
@@ -228,6 +229,29 @@ int main(int argc, char* argv[]) {
             {
                 std::lock_guard<std::mutex> loc(cats_mutex);
                 for (auto c : cats) c.render(win, camera, cat_sprite);
+            }
+
+            if (g_state != GS_MMENU) {
+                int xm, ym;
+                SDL_GetMouseState(&xm, &ym);
+                SDL_Rect HELP_RECT{0, 0, T + T / 4, T + T / 4};
+
+                if (inside(&HELP_RECT, xm / SCALE, ym / SCALE)) {
+                    SDL_SetRenderDrawColor(win.ren, 0x00, 0x00, 0x00, 0x7F);
+                    SDL_Rect screen = {T / 4, T / 4, 8 * T + T / 2 + T / 4, 6 * T - T / 4};
+                    SDL_RenderFillRect(win.ren, &screen);
+                    SDL_SetRenderDrawColor(win.ren, 0xFF, 0xFF, 0xFF, 0xFF);
+
+                    win.render_text_left(m5x7, "[s]tart the race", T / 2, T / 4);
+                    win.render_text_left(m5x7, "[enter] to pet the cat", T / 2, T / 4 + 3 * T / 4);
+                    win.render_text_left(m5x7, "[space] to start the race", T / 2,
+                                         T / 4 + 2 * (3 * T / 4));
+                    win.render_text_left(m5x7, "[c]hange character", T / 2,
+                                         T / 4 + 3 * (3 * T / 4));
+                    win.render_text_left(m5x7, "[r]estart", T / 2, T / 4 + 4 * (3 * T / 4));
+                } else {
+                    win.render_heading(m5x7, "?", T / 2, T / 2);
+                }
             }
 
             if (g_state == GS_MMENU) {
@@ -339,7 +363,9 @@ int main(int argc, char* argv[]) {
                     SDL_DestroyTexture(texture);
                 }
 
+                SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
                 SDL_RenderCopy(win.ren, cat_img, nullptr, &frame);
+                SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
             }
 
             win.display();
