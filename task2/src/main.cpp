@@ -511,8 +511,11 @@ int main(int argc, char* argv[]) {
                         .count();
                 static constexpr int loop_length = 24;
                 auto wait_time = loop_length - diff;
-                if (wait_time > 0)
+                if (wait_time > 0) { 
                     std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
+                } else {
+                    std::cout << "took too long\n";
+                }
                 prev_loop_time = cur_time;
             }
         }
