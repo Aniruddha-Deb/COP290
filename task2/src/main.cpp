@@ -223,6 +223,13 @@ int main(int argc, char* argv[]) {
             // map
             SDL_RenderCopy(win.ren, map, &camera, nullptr);
 
+
+            // render cats
+            {
+                std::lock_guard<std::mutex> loc(cats_mutex);
+                for (auto c : cats) c.render(win, camera, cat_sprite);
+            }
+
             // render other players
             {
                 std::lock_guard<std::mutex> lock(others_mutex);
@@ -233,12 +240,6 @@ int main(int argc, char* argv[]) {
             {
                 std::lock_guard<std::mutex> lock(player_mutex);
                 p.render(win, camera, player_sprite);
-            }
-
-            // render cats
-            {
-                std::lock_guard<std::mutex> loc(cats_mutex);
-                for (auto c : cats) c.render(win, camera, cat_sprite);
             }
 
             if (g_state != GS_MMENU) {
@@ -287,7 +288,7 @@ int main(int argc, char* argv[]) {
 
                 if (!change_character) {
                     std::lock_guard<std::mutex> lock(player_mutex);
-                    p.update_state(key_state, clk);
+                    p.update_state(key_state, clk, g_state);
                 }
 
                 // free roam mode (without being able to see regions) for the server creator
@@ -341,7 +342,7 @@ int main(int argc, char* argv[]) {
 
                 if (!change_character) {
                     std::lock_guard<std::mutex> lock(player_mutex);
-                    p.update_state(key_state, clk);
+                    p.update_state(key_state, clk, g_state);
                 }
 
                 display_region(p, win, m5x7);

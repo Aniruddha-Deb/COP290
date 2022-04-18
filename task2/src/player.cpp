@@ -12,13 +12,13 @@
 
 void player::update_sprite(int incr) { character = (character + 3 + incr) % 3; }
 
-void player::update_state(const Uint8* state, int clk) {
+void player::update_state(const Uint8* state, int clk, gameStates g) {
     int px = (pos_x + T) / T;
     int py = (pos_y + T) / T;
     int xe = pos_x % T;
     int ye = pos_y % T;
 
-    int speed = state[SDL_SCANCODE_SPACE] ? 2 : 1;
+    int speed = (g == GS_CHASE) ? 1 : (state[SDL_SCANCODE_SPACE] ? 2 : 1);
 
     if (state[SDL_SCANCODE_RIGHT] || state[SDL_SCANCODE_LEFT] || state[SDL_SCANCODE_UP] ||
         state[SDL_SCANCODE_DOWN]) {
