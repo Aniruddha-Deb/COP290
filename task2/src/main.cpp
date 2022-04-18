@@ -284,6 +284,7 @@ int main(int argc, char* argv[]) {
                 // win.render_text(m5x7, "IP: 127.0.0.1", 3 * T, T / 2);
                 win.render_text(m5x7, std::to_string(1 + others.size()) + "/2", (WIN_W - 1) * T,
                                 T / 2);
+                display_region(p, win, m5x7);
 
                 if (!change_character) {
                     std::lock_guard<std::mutex> lock(player_mutex);
