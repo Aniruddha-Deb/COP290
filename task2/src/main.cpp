@@ -53,6 +53,7 @@ int main(int argc, char* argv[]) {
 
         // all game state information here
         gameStates g_state = GS_MMENU, prev_state = GS_WAIT;
+        bool change_character = true;
 
         player p(13 * T + T * WIN_W / 2,
                  78 * T + T * WIN_H / 2);  // change this to change start location
@@ -86,7 +87,11 @@ int main(int argc, char* argv[]) {
 
         const auto client_loop = [&](std::future<void> exit_sig, std::string address) {
             IPaddress server_ip;
-            SDLNet_ResolveHost(&server_ip, address.c_str(), server_class::port);
+
+            if (SDLNet_ResolveHost(&server_ip, address.c_str(), server_class::port) < 0) {
+                std::cout << "Couldn't resolve host\n";
+            }
+
             TCPsocket server = SDLNet_TCP_Open(&server_ip);
 
             {
@@ -195,7 +200,12 @@ int main(int argc, char* argv[]) {
         std::thread client_thread;
 
         auto connect_to_server = [&](std::string address) {
+            client_exit_signal = std::promise<void>();
             client_thread = std::thread(client_loop, client_exit_signal.get_future(), address);
+        };
+        auto kill_client = [&]() {
+            client_exit_signal.set_value();
+            if (client_thread.joinable()) client_thread.join();
         };
 
         while (!quit) {
@@ -232,19 +242,20 @@ int main(int argc, char* argv[]) {
             }
 
             if (g_state != GS_MMENU) {
+                // Mouseover help
                 int xm, ym;
                 SDL_GetMouseState(&xm, &ym);
                 SDL_Rect HELP_RECT{0, 0, T + T / 4, T + T / 4};
 
                 if (inside(&HELP_RECT, xm / SCALE, ym / SCALE)) {
                     SDL_SetRenderDrawColor(win.ren, 0x00, 0x00, 0x00, 0x7F);
-                    SDL_Rect screen = {T / 4, T / 4, 8 * T + T / 2 + T / 4, 6 * T - T / 4};
-                    SDL_RenderFillRect(win.ren, &screen);
+                    SDL_Rect background = {T / 4, T / 4, 8 * T + T / 4 + T / 4, 4 * T};
+                    SDL_RenderFillRect(win.ren, &background);
                     SDL_SetRenderDrawColor(win.ren, 0xFF, 0xFF, 0xFF, 0xFF);
 
                     win.render_text_left(m5x7, "[s]tart the race", T / 2, T / 4);
                     win.render_text_left(m5x7, "[enter] to pet the cat", T / 2, T / 4 + 3 * T / 4);
-                    win.render_text_left(m5x7, "[space] to start the race", T / 2,
+                    win.render_text_left(m5x7, "[space] to start running", T / 2,
                                          T / 4 + 2 * (3 * T / 4));
                     win.render_text_left(m5x7, "[c]hange character", T / 2,
                                          T / 4 + 3 * (3 * T / 4));
@@ -254,21 +265,27 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            if (change_character) {
+                std::lock_guard<std::mutex> lock(player_mutex);
+                win.render_text(minecraftia, "<", (p.pos_x - camera.x) - T / 2,
+                                (p.pos_y - camera.y) + T / 2);
+                win.render_text(minecraftia, ">", (p.pos_x - camera.x) + 3 * T / 2,
+                                (p.pos_y - camera.y) + T / 2);
+            }
+
             if (g_state == GS_MMENU) {
+                change_character = true;
+
                 win.render_heading(m5x7_l, "IITD Simulator", WIN_W * T / 2, T);
                 win.render_text(m5x7, "Find a Game", WIN_W * T / 4, (WIN_H - 2) * T);
                 win.render_text(m5x7, "Create a Game", 3 * WIN_W * T / 4, (WIN_H - 2) * T);
                 // m5x7 doesn't have < and > glyphs, sad
-                win.render_text(minecraftia, ">", (WIN_W / 2 + 1) * T + T / 2,
-                                WIN_H * T / 2 + T / 2);
-                win.render_text(minecraftia, "<", (WIN_W / 2 - 1) * T + T / 2,
-                                WIN_H * T / 2 + T / 2);
             } else if (g_state == GS_WAIT) {
                 // win.render_text(m5x7, "IP: 127.0.0.1", 3 * T, T / 2);
                 win.render_text(m5x7, std::to_string(1 + others.size()) + "/2", (WIN_W - 1) * T,
                                 T / 2);
 
-                {
+                if (!change_character) {
                     std::lock_guard<std::mutex> lock(player_mutex);
                     p.update_state(key_state, clk);
                 }
@@ -322,7 +339,7 @@ int main(int argc, char* argv[]) {
                 prompt = "Get to " + prompt;
                 win.render_text(m5x7, prompt.c_str(), WIN_W * T / 2, T);
 
-                {
+                if (!change_character) {
                     std::lock_guard<std::mutex> lock(player_mutex);
                     p.update_state(key_state, clk);
                 }
@@ -380,9 +397,10 @@ int main(int argc, char* argv[]) {
                         int xm, ym;
                         SDL_GetMouseState(&xm, &ym);
                         if (inside(&BTN_LEFT, xm / 4, ym / 4)) {
-                            if (g_state == GS_MMENU)
+                            if (g_state == GS_MMENU) {
+                                change_character = false;
                                 g_state = GS_FIND;
-                            else if (g_state == GS_END) {
+                            } else if (g_state == GS_END) {
                                 // reset game
                                 tgt_loc = -1;
                                 winner = -1;
@@ -394,6 +412,7 @@ int main(int argc, char* argv[]) {
                                 // create game
                                 S.create();
                                 connect_to_server("127.0.0.1");
+                                change_character = false;
                                 g_state = GS_WAIT;
                             } else if (g_state == GS_END) {
                                 quit = true;
@@ -402,16 +421,45 @@ int main(int argc, char* argv[]) {
                         }
                     }
                 } else if (e.type == SDL_KEYUP) {
-                    if (g_state == GS_MMENU) {
+                    if (g_state == GS_MMENU || change_character) {
                         if (e.key.keysym.sym == SDLK_RIGHT) {
                             std::lock_guard<std::mutex> lock(player_mutex);
-                            p.update_sprite(1);
+                            p.update_sprite(+1);
                         } else if (e.key.keysym.sym == SDLK_LEFT) {
                             std::lock_guard<std::mutex> lock(player_mutex);
                             p.update_sprite(-1);
                         }
                     }
+                    if (change_character) {
+                        if (e.key.keysym.sym == SDLK_RETURN) {
+                            change_character = false;
+                        }
+                    }
                 } else if (e.type == SDL_KEYDOWN) {
+                    if (e.key.keysym.sym == SDLK_c) {
+                        change_character = true;
+                    }
+                    if (e.key.keysym.sym == SDLK_r) {
+                        // restart
+                        g_state = GS_MMENU;
+                        S.kill();
+                        kill_client();
+
+                        {
+                            std::lock_guard<std::mutex> lock(others_mutex);
+                            others.clear();
+                        }
+
+                        {
+                            std::lock_guard<std::mutex> lock(player_mutex);
+                            p.dir = DIR_D;
+                        }
+
+                        {
+                            std::lock_guard<std::mutex> lock(cats_mutex);
+                            cats.clear();
+                        }
+                    }
                     if (g_state == GS_FIND) {
                         if ((e.key.keysym.sym >= SDLK_0 && e.key.keysym.sym <= SDLK_9) ||
                             e.key.keysym.sym == SDLK_PERIOD) {
@@ -468,8 +516,16 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        client_exit_signal.set_value();
-        if (client_thread.joinable()) client_thread.join();
+        SDL_DestroyTexture(map);
+        SDL_DestroyTexture(player_sprite);
+        SDL_DestroyTexture(cat_sprite);
+        for (auto& c : cat_imgs) SDL_DestroyTexture(c);
+
+        TTF_CloseFont(m5x7);
+        TTF_CloseFont(m5x7_l);
+        TTF_CloseFont(minecraftia);
+
+        kill_client();
     } catch (SDL_exception& e) {
         std::cerr << e.what() << std::endl;
     }

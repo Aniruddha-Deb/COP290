@@ -23,6 +23,7 @@
 server_class::server_class() {}
 
 void server_class::create() {
+    exit_signal = std::promise<void>();
     std::future<void> future_obj = exit_signal.get_future();
     th = std::thread(&server_loop, std::move(future_obj));
 }
@@ -237,7 +238,9 @@ void server_class::server_loop(std::future<void> future_obj) {
     SDLNet_TCP_Close(server);
 }
 
-server_class::~server_class() {
+void server_class::kill() {
     exit_signal.set_value();
     if (th.joinable()) th.join();
 }
+
+server_class::~server_class() { kill(); }

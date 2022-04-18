@@ -18,6 +18,7 @@ struct server_class {
 
     server_class();
     void create();
+    void kill();
     static void server_loop(std::future<void> future_obj);
     ~server_class();
 
