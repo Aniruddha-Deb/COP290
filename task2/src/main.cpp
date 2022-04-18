@@ -223,7 +223,6 @@ int main(int argc, char* argv[]) {
             // map
             SDL_RenderCopy(win.ren, map, &camera, nullptr);
 
-
             // render cats
             {
                 std::lock_guard<std::mutex> loc(cats_mutex);
@@ -389,7 +388,7 @@ int main(int argc, char* argv[]) {
             win.display();
 
             // get input
-            while (SDL_PollEvent(&e) != 0) {
+            if (SDL_PollEvent(&e) != 0) {
                 if (e.type == SDL_QUIT) {
                     quit = true;
                     break;
@@ -511,12 +510,12 @@ int main(int argc, char* argv[]) {
                         .count();
                 static constexpr int loop_length = 24;
                 auto wait_time = loop_length - diff;
-                if (wait_time > 0) { 
+                if (wait_time > 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
                 } else {
-                    std::cout << "took too long\n";
+                    // std::cout << "took too long " << diff << '\n';
                 }
-                prev_loop_time = cur_time;
+                prev_loop_time = std::chrono::steady_clock::now().time_since_epoch();
             }
         }
 
