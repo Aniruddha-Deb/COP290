@@ -1,0 +1,10 @@
+Everything works? Some bugs in the server (game crashes sometimes when you 
+connect to the server), otherwise we ended up implementing everything we were
+supposed to implement.
+
+Some other things (given more time):
+- Occlusion: too complicated to implement, as would require rendering a partial
+  outline of the sprite occluded 
+- More NPC's? 
+- Bigger map
+- Make networking more robust

@@ -1,5 +1,9 @@
 # IITD Simulator
 
+## Instructions
+
+See `about.pdf`
+
 ## Installation
 
 This project requires SDL2, SDL2\_net, SDL2\_ttf and SDL2\_net to compile. 
@@ -17,7 +21,8 @@ sudo apt-get install libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-net-d
 
 After the libraries are installed, compile using the makefile: `make`. 
 
-To run the game, use `start.sh`.
+To run the game, use `start.sh`, or just double click the `game` executable 
+generated in `bin` folder
 
 ## Testing 
 
@@ -31,7 +36,4 @@ is in `status.txt`.
 * [SDL Tutorial 25 - networking with SDL\_net](https://www.youtube.com/watch?v=LNSqqxIKX_k&ab_channel=thecplusplusguy)
 * [C++ Concurrency by Bo Qian](https://www.youtube.com/watch?v=LL8wkskDlbs&list=PL5jc9xFGsL8E12so1wlMS0r0hTQoJL74M&ab_channel=BoQian)
 * [CPPReference.com](https://en.cppreference.com)
-* Stack Overflow (duh)
-
-
-
+* Stack Overflow 
