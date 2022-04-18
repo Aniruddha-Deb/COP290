@@ -508,7 +508,7 @@ int main(int argc, char* argv[]) {
                 const auto diff =
                     std::chrono::duration_cast<std::chrono::milliseconds>(cur_time - prev_loop_time)
                         .count();
-                static constexpr int loop_length = 24;
+                static constexpr int loop_length = 20;
                 auto wait_time = loop_length - diff;
                 if (wait_time > 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(wait_time));
